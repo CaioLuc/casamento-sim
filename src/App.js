@@ -268,8 +268,8 @@ export default function WeddingGiftSite() {
         <div className="container py-12">
           <div className="max-w-2xl text-center mb-12">
             <Heart className="icon-center text-pink-500" size={64} />
-            <h1 className="text-5xl font-bold text-gray-800 mb-2">Ana & João</h1>
-            <p className="text-xl text-gray-600 mb-8">15 de Dezembro de 2025</p>
+            <h1 className="text-5xl font-bold text-gray-800 mb-2">Evelyn & Caio</h1>
+            <p className="text-xl text-gray-600 mb-8">14 de Dezembro de 2025</p>
             <div className="divider mb-8"></div>
           </div>
 
@@ -505,7 +505,7 @@ export default function WeddingGiftSite() {
                   className="checkbox"
                   disabled={loading}
                 />
-                <span>✅ Permitir múltiplas pessoas comprarem este item</span>
+                <span> Permitir múltiplas pessoas comprarem este item</span>
               </label>
               <button
                 onClick={handleAddGift}
@@ -518,7 +518,7 @@ export default function WeddingGiftSite() {
               </button>
             </div>
 
-            <h3 className="text-xl font-bold mb-4">📦 Presentes Cadastrados ({gifts.length})</h3>
+            <h3 className="text-xl font-bold mb-4"> Presentes Cadastrados ({gifts.length})</h3>
             <div className="grid grid-cols-3 gap-4">
               {gifts.length === 0 ? (
                 <div style={{
@@ -544,7 +544,7 @@ export default function WeddingGiftSite() {
                     <p className="text-sm text-gray-600 mb-2">{gift.description}</p>
                     {gift.reserved && (
                       <p className="text-xs text-green-600 font-semibold">
-                        ✅ Reservado por: {gift.reservedBy}
+                        Reservado por: {gift.reservedBy}
                       </p>
                     )}
                     {gift.allowMultiple && (
@@ -641,7 +641,7 @@ export default function WeddingGiftSite() {
               </p>
               <div className="pix-box">
                 <p className="text-sm text-gray-600">Chave PIX</p>
-                <p className="pix-key">casamento@exemplo.com</p>
+                <p className="pix-key">90299bd3-53b1-4a2b-b8b6-dd12e2b1a85a</p>
               </div>
               <input
                 type="number"
