@@ -349,8 +349,8 @@ export default function WeddingGiftSite() {
         <div className="container py-12">
           <div className="max-w-2xl text-center mb-12">
             <Heart className="icon-center text-pink-500" size={64} />
-            <h1 className="text-5xl font-bold text-gray-800 mb-2">Ana & João</h1>
-            <p className="text-xl text-gray-600 mb-8">15 de Dezembro de 2025</p>
+            <h1 className="text-5xl font-bold text-gray-800 mb-2">Caio & Evelyn</h1>
+            <p className="text-xl text-gray-600 mb-8">14 de Dezembro de 2025</p>
             <div className="divider mb-8"></div>
           </div>
 
@@ -696,7 +696,7 @@ export default function WeddingGiftSite() {
                     <p className="font-bold text-2xl text-green-600">R$ {selectedPix.amount.toFixed(2)}</p>
                     <div style={{marginTop: '0.5rem', padding: '0.5rem', backgroundColor: '#f3f4f6', borderRadius: '0.25rem'}}>
                       <p className="text-xs text-gray-600">Chave PIX:</p>
-                      <p className="pix-key" style={{fontSize: '0.875rem'}}>casamento@exemplo.com</p>
+                      <p className="pix-key" style={{fontSize: '0.875rem'}}>90299bd3-53b1-4a2b-b8b6-dd12e2b1a85a</p>
                     </div>
                   </div>
                 )}
@@ -798,7 +798,7 @@ export default function WeddingGiftSite() {
               </p>
               <div className="pix-box">
                 <p className="text-sm text-gray-600">Chave PIX</p>
-                <p className="pix-key">casamento@exemplo.com</p>
+                <p className="pix-key">90299bd3-53b1-4a2b-b8b6-dd12e2b1a85a</p>
               </div>
               <input
                 type="number"
@@ -859,7 +859,7 @@ export default function WeddingGiftSite() {
           <p className="text-gray-600 mb-8">
             Seus dados foram salvos com sucesso.
             <br />
-            Aguardamos você no nosso dia especial! ❤️
+            Aguardamos você no nosso dia especial! 
           </p>
           <button
             onClick={() => {
