@@ -172,36 +172,47 @@ export default function WeddingGiftSite() {
     setLoading(true);
     
     try {
-      // Atualizar dados do convidado com a escolha
-      const guestRef = doc(db, 'guests', currentGuest.id);
+      // Preparar dados de atualização do convidado
       const updateData = {
         confirmedAt: serverTimestamp()
       };
 
       // Se escolheu presente, reservar no banco
       if (selectedGift) {
-        const giftRef = doc(db, 'gifts', selectedGift.id);
-        await updateDoc(giftRef, {
-          reserved: true,
-          reservedBy: currentGuest.name,
-          reservedById: currentGuest.id,
-          reservedAt: serverTimestamp()
-        });
-        
-        updateData.giftId = selectedGift.id;
-        updateData.giftName = selectedGift.name;
+        try {
+          const giftRef = doc(db, 'gifts', selectedGift.id);
+          await updateDoc(giftRef, {
+            reserved: true,
+            reservedBy: currentGuest.name,
+            reservedById: currentGuest.id,
+            reservedAt: serverTimestamp()
+          });
+          
+          updateData.giftId = selectedGift.id;
+          updateData.giftName = selectedGift.name;
+        } catch (giftError) {
+          console.error('Erro ao reservar presente:', giftError);
+          throw new Error('Erro ao reservar o presente');
+        }
       }
       
       // Se escolheu PIX, salvar contribuição
       if (selectedPix) {
-        await addDoc(collection(db, 'pixContributions'), {
-          guestName: currentGuest.name,
-          guestId: currentGuest.id,
-          amount: selectedPix.amount,
-          timestamp: serverTimestamp()
-        });
-        
-        updateData.pixAmount = selectedPix.amount;
+        try {
+          const pixDoc = await addDoc(collection(db, 'pixContributions'), {
+            guestName: currentGuest.name,
+            guestId: currentGuest.id,
+            guestEmail: currentGuest.email,
+            amount: selectedPix.amount,
+            timestamp: serverTimestamp()
+          });
+          
+          updateData.pixAmount = selectedPix.amount;
+          updateData.pixContributionId = pixDoc.id;
+        } catch (pixError) {
+          console.error('Erro ao salvar PIX:', pixError);
+          throw new Error('Erro ao salvar contribuição PIX');
+        }
       }
       
       // Se não contribuiu
@@ -210,7 +221,13 @@ export default function WeddingGiftSite() {
       }
 
       // Atualizar convidado
-      await updateDoc(guestRef, updateData);
+      try {
+        const guestRef = doc(db, 'guests', currentGuest.id);
+        await updateDoc(guestRef, updateData);
+      } catch (guestError) {
+        console.error('Erro ao atualizar convidado:', guestError);
+        throw new Error('Erro ao atualizar dados do convidado');
+      }
       
       // Recarregar dados
       await loadGifts();
@@ -234,8 +251,8 @@ export default function WeddingGiftSite() {
       }, 100);
       
     } catch (error) {
-      console.error('Erro ao finalizar:', error);
-      alert('❌ Erro ao confirmar presença. Tente novamente.');
+      console.error('Erro detalhado:', error);
+      alert('❌ Erro ao confirmar presença: ' + error.message + '\n\nTente novamente ou entre em contato com os noivos.');
     } finally {
       setLoading(false);
     }
