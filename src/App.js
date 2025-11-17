@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Gift, Users, DollarSign, Lock, Trash2, Plus, ExternalLink, AlertCircle } from 'lucide-react';
+import { Heart, Gift, Users, DollarSign, Lock, Trash2, Plus, ExternalLink, AlertCircle, CheckCircle, Send } from 'lucide-react';
 import { db } from './firebase';
 import { 
   collection, 
@@ -29,6 +29,9 @@ export default function WeddingGiftSite() {
   const [pixContributions, setPixContributions] = useState([]);
   
   const [pixAmount, setPixAmount] = useState('');
+  const [selectedGift, setSelectedGift] = useState(null);
+  const [selectedPix, setSelectedPix] = useState(null);
+  const [noContribution, setNoContribution] = useState(false);
   
   const [adminPassword, setAdminPassword] = useState('');
   const [adminError, setAdminError] = useState('');
@@ -115,65 +118,127 @@ export default function WeddingGiftSite() {
     }
   };
 
-  const handleGiftReservation = async (gift) => {
+  const handleSelectGift = async (gift) => {
     if (gift.reserved && !gift.allowMultiple) {
       alert('Este presente já foi escolhido por outro convidado');
       return;
     }
     
-    setLoading(true);
+    // Apenas marca como selecionado, NÃO salva no banco ainda
+    setSelectedGift(gift);
+    setSelectedPix(null);
+    setNoContribution(false);
+    setPixAmount('');
     
-    try {
-      const giftRef = doc(db, 'gifts', gift.id);
-      await updateDoc(giftRef, {
-        reserved: true,
-        reservedBy: currentGuest.name,
-        reservedById: currentGuest.id,
-        reservedAt: serverTimestamp()
-      });
-      
-      await loadGifts();
-      alert(`Obrigado ${currentGuest.name}! Você escolheu: ${gift.name}\n\nClique no link para finalizar a compra.`);
-    } catch (error) {
-      console.error('Erro ao reservar presente:', error);
-      alert('Erro ao reservar presente. Tente novamente.');
-    } finally {
-      setLoading(false);
-    }
+    // Rolar para o botão de confirmação
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handlePixContribution = async () => {
+  const handleSelectPix = () => {
     if (!pixAmount || parseFloat(pixAmount) <= 0) {
       alert('Por favor, insira um valor válido');
       return;
     }
     
+    // Apenas marca como selecionado, NÃO salva no banco ainda
+    setSelectedPix({ amount: parseFloat(pixAmount) });
+    setSelectedGift(null);
+    setNoContribution(false);
+    
+    // Rolar para o botão de confirmação
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSelectNoContribution = () => {
+    setNoContribution(true);
+    setSelectedGift(null);
+    setSelectedPix(null);
+    setPixAmount('');
+    
+    // Rolar para o botão de confirmação
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleFinalConfirmation = async () => {
+    if (!selectedGift && !selectedPix && !noContribution) {
+      alert('⚠️ Por favor, escolha uma opção antes de confirmar:\n\n• Selecione um presente\n• Registre uma contribuição PIX\n• Ou confirme apenas sua presença');
+      return;
+    }
+
+    if (!window.confirm('Deseja confirmar sua presença com essas informações?')) {
+      return;
+    }
+
     setLoading(true);
     
     try {
-      const contribution = {
-        guestName: currentGuest.name,
-        guestId: currentGuest.id,
-        amount: parseFloat(pixAmount),
-        timestamp: serverTimestamp()
+      // Atualizar dados do convidado com a escolha
+      const guestRef = doc(db, 'guests', currentGuest.id);
+      const updateData = {
+        confirmedAt: serverTimestamp()
       };
+
+      // Se escolheu presente, reservar no banco
+      if (selectedGift) {
+        const giftRef = doc(db, 'gifts', selectedGift.id);
+        await updateDoc(giftRef, {
+          reserved: true,
+          reservedBy: currentGuest.name,
+          reservedById: currentGuest.id,
+          reservedAt: serverTimestamp()
+        });
+        
+        updateData.giftId = selectedGift.id;
+        updateData.giftName = selectedGift.name;
+      }
       
-      await addDoc(collection(db, 'pixContributions'), contribution);
+      // Se escolheu PIX, salvar contribuição
+      if (selectedPix) {
+        await addDoc(collection(db, 'pixContributions'), {
+          guestName: currentGuest.name,
+          guestId: currentGuest.id,
+          amount: selectedPix.amount,
+          timestamp: serverTimestamp()
+        });
+        
+        updateData.pixAmount = selectedPix.amount;
+      }
+      
+      // Se não contribuiu
+      if (noContribution) {
+        updateData.noContribution = true;
+      }
+
+      // Atualizar convidado
+      await updateDoc(guestRef, updateData);
+      
+      // Recarregar dados
+      await loadGifts();
+      await loadGuests();
       await loadPixContributions();
       
-      alert(`Obrigado ${currentGuest.name}!\n\nValor: R$ ${pixAmount}\n\nChave PIX: casamento@exemplo.com\n\nPor favor, faça a transferência e guarde o comprovante.`);
-      setPixAmount('');
+      // Ir para tela de agradecimento
+      setCurrentPage('thanks');
+      
+      // Resetar estados
+      setTimeout(() => {
+        setCurrentGuest(null);
+        setSelectedGift(null);
+        setSelectedPix(null);
+        setNoContribution(false);
+        setGuestName('');
+        setGuestEmail('');
+        setGuestPhone('');
+        setCompanions(1);
+        setPixAmount('');
+      }, 100);
+      
     } catch (error) {
-      console.error('Erro ao salvar contribuição:', error);
-      alert('Erro ao salvar. Tente novamente.');
+      console.error('Erro ao finalizar:', error);
+      alert('❌ Erro ao confirmar presença. Tente novamente.');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleNoContribution = () => {
-    alert(`${currentGuest.name}, agradecemos imensamente pela sua presença em nosso dia especial! Sua companhia é o maior presente. ❤️`);
-    setCurrentPage('thanks');
   };
 
   const handleAdminLogin = async () => {
@@ -181,7 +246,6 @@ export default function WeddingGiftSite() {
     setLoading(true);
     
     try {
-      // Buscar senha admin do Firebase
       const adminDoc = await getDoc(doc(db, 'config', 'admin'));
       
       if (!adminDoc.exists()) {
@@ -268,8 +332,8 @@ export default function WeddingGiftSite() {
         <div className="container py-12">
           <div className="max-w-2xl text-center mb-12">
             <Heart className="icon-center text-pink-500" size={64} />
-            <h1 className="text-5xl font-bold text-gray-800 mb-2">Evelyn & Caio</h1>
-            <p className="text-xl text-gray-600 mb-8">14 de Dezembro de 2025</p>
+            <h1 className="text-5xl font-bold text-gray-800 mb-2">Ana & João</h1>
+            <p className="text-xl text-gray-600 mb-8">15 de Dezembro de 2025</p>
             <div className="divider mb-8"></div>
           </div>
 
@@ -505,7 +569,7 @@ export default function WeddingGiftSite() {
                   className="checkbox"
                   disabled={loading}
                 />
-                <span> Permitir múltiplas pessoas comprarem este item</span>
+                <span>✅ Permitir múltiplas pessoas comprarem este item</span>
               </label>
               <button
                 onClick={handleAddGift}
@@ -518,7 +582,7 @@ export default function WeddingGiftSite() {
               </button>
             </div>
 
-            <h3 className="text-xl font-bold mb-4"> Presentes Cadastrados ({gifts.length})</h3>
+            <h3 className="text-xl font-bold mb-4">📦 Presentes Cadastrados ({gifts.length})</h3>
             <div className="grid grid-cols-3 gap-4">
               {gifts.length === 0 ? (
                 <div style={{
@@ -544,7 +608,7 @@ export default function WeddingGiftSite() {
                     <p className="text-sm text-gray-600 mb-2">{gift.description}</p>
                     {gift.reserved && (
                       <p className="text-xs text-green-600 font-semibold">
-                        Reservado por: {gift.reservedBy}
+                        ✅ Reservado por: {gift.reservedBy}
                       </p>
                     )}
                     {gift.allowMultiple && (
@@ -571,6 +635,8 @@ export default function WeddingGiftSite() {
   }
 
   if (currentPage === 'gifts' && currentGuest) {
+    const hasSelection = selectedGift || selectedPix || noContribution;
+    
     return (
       <div className="min-h-screen bg-gradient py-8 px-4">
         <div className="max-w-6xl">
@@ -580,10 +646,76 @@ export default function WeddingGiftSite() {
             </h2>
             <p className="text-gray-600">
               {currentGuest.companions > 1 
-                ? `Você e mais ${currentGuest.companions - 1} pessoa(s) confirmaram presença`
+                ? `Você e mais ${currentGuest.companions - 1} pessoa(s)`
                 : 'Você confirmou presença'}
             </p>
           </div>
+
+          {/* Box de resumo e confirmação */}
+          {hasSelection && (
+            <div className="card mb-8" style={{backgroundColor: '#ecfdf5', borderLeft: '4px solid #10b981'}}>
+              <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                <CheckCircle size={24} style={{color: '#10b981', marginRight: '0.5rem'}} />
+                Resumo da sua Escolha
+              </h3>
+              
+              <div style={{backgroundColor: 'white', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1rem'}}>
+                {selectedGift && (
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">🎁 Presente Selecionado:</p>
+                    <p className="font-bold text-lg">{selectedGift.name}</p>
+                    <p className="text-gray-600">{selectedGift.description}</p>
+                    {selectedGift.link && (
+                      <a href={selectedGift.link} target="_blank" rel="noopener noreferrer" className="link" style={{marginTop: '0.5rem', display: 'inline-flex'}}>
+                        <ExternalLink size={16} style={{marginRight: '0.25rem'}} /> Ver produto para comprar
+                      </a>
+                    )}
+                  </div>
+                )}
+                
+                {selectedPix && (
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">💰 Contribuição PIX:</p>
+                    <p className="font-bold text-2xl text-green-600">R$ {selectedPix.amount.toFixed(2)}</p>
+                    <div style={{marginTop: '0.5rem', padding: '0.5rem', backgroundColor: '#f3f4f6', borderRadius: '0.25rem'}}>
+                      <p className="text-xs text-gray-600">Chave PIX:</p>
+                      <p className="pix-key" style={{fontSize: '0.875rem'}}>casamento@exemplo.com</p>
+                    </div>
+                  </div>
+                )}
+                
+                {noContribution && (
+                  <div>
+                    <p className="text-lg">❤️ <strong>Apenas confirmar presença</strong></p>
+                    <p className="text-gray-600">Sua presença é o maior presente!</p>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={handleFinalConfirmation}
+                disabled={loading}
+                className="btn btn-success"
+                style={{fontSize: '1.125rem', padding: '1rem'}}
+              >
+                <Send size={24} />
+                {loading ? 'Enviando...' : 'Confirmar Presença e Enviar'}
+              </button>
+              
+              <p className="text-xs text-gray-600 text-center mt-2">
+                Ao confirmar, seus dados serão salvos e não poderão ser alterados
+              </p>
+            </div>
+          )}
+
+          {!hasSelection && (
+            <div className="card mb-4" style={{backgroundColor: '#fef3c7', borderLeft: '4px solid #f59e0b', padding: '1rem'}}>
+              <p className="text-gray-800" style={{display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0}}>
+                <AlertCircle size={20} style={{color: '#f59e0b', flexShrink: 0}} />
+                <span><strong>Escolha uma opção abaixo</strong> para continuar</span>
+              </p>
+            </div>
+          )}
 
           <div className="card mb-8">
             <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
@@ -596,9 +728,13 @@ export default function WeddingGiftSite() {
                 Nenhum presente disponível no momento
               </p>
             ) : (
-              <div className="grid grid-cols-3 gap-4 mb-8">
+              <div className="grid grid-cols-3 gap-4">
                 {gifts.map(gift => (
-                  <div key={gift.id} className={`gift-card ${gift.reserved && !gift.allowMultiple ? 'reserved' : ''}`}>
+                  <div 
+                    key={gift.id} 
+                    className={`gift-card ${gift.reserved && !gift.allowMultiple ? 'reserved' : ''} ${selectedGift?.id === gift.id ? 'selected-card' : ''}`}
+                    style={selectedGift?.id === gift.id ? {borderColor: '#10b981', borderWidth: '3px'} : {}}
+                  >
                     {gift.image && <img src={gift.image} alt={gift.name} />}
                     <h4 className="font-bold text-lg mb-2">{gift.name}</h4>
                     <p className="text-sm text-gray-600 mb-4">{gift.description}</p>
@@ -607,14 +743,18 @@ export default function WeddingGiftSite() {
                       <div className="badge badge-gray w-full">
                         <Lock size={16} /> Já foi escolhido
                       </div>
+                    ) : selectedGift?.id === gift.id ? (
+                      <div className="badge badge-green w-full">
+                        <CheckCircle size={16} /> Selecionado
+                      </div>
                     ) : (
                       <button
-                        onClick={() => handleGiftReservation(gift)}
+                        onClick={() => handleSelectGift(gift)}
                         disabled={loading}
                         className="btn btn-primary"
                       >
                         <Gift size={16} />
-                        {loading ? 'Aguarde...' : 'Escolher este presente'}
+                        Selecionar este presente
                       </button>
                     )}
                     
@@ -641,7 +781,7 @@ export default function WeddingGiftSite() {
               </p>
               <div className="pix-box">
                 <p className="text-sm text-gray-600">Chave PIX</p>
-                <p className="pix-key">90299bd3-53b1-4a2b-b8b6-dd12e2b1a85a</p>
+                <p className="pix-key">casamento@exemplo.com</p>
               </div>
               <input
                 type="number"
@@ -651,26 +791,39 @@ export default function WeddingGiftSite() {
                 onChange={(e) => setPixAmount(e.target.value)}
                 placeholder="Valor (R$)"
                 className="input mb-4"
-                disabled={loading}
+                disabled={loading || selectedPix}
               />
-              <button
-                onClick={handlePixContribution}
-                disabled={loading}
-                className="btn btn-success"
-              >
-                {loading ? 'Aguarde...' : 'Confirmar Contribuição PIX'}
-              </button>
+              {selectedPix ? (
+                <div className="badge badge-green w-full" style={{padding: '1rem', fontSize: '1rem'}}>
+                  <CheckCircle size={20} /> Valor de R$ {selectedPix.amount.toFixed(2)} selecionado
+                </div>
+              ) : (
+                <button
+                  onClick={handleSelectPix}
+                  disabled={loading}
+                  className="btn btn-success"
+                >
+                  <DollarSign size={20} />
+                  Selecionar Contribuição PIX
+                </button>
+              )}
             </div>
           </div>
 
-          <div className="text-center">
-            <button
-              onClick={handleNoContribution}
-              className="text-gray-600 underline"
-              style={{background: 'none', border: 'none', cursor: 'pointer'}}
-            >
-              Prefiro não contribuir no momento
-            </button>
+          <div className="text-center card" style={{padding: '2rem'}}>
+            {noContribution ? (
+              <div className="badge badge-green" style={{padding: '1rem', fontSize: '1rem', width: '100%'}}>
+                <CheckCircle size={20} /> Presença confirmada sem presente
+              </div>
+            ) : (
+              <button
+                onClick={handleSelectNoContribution}
+                className="text-gray-600 underline"
+                style={{background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem'}}
+              >
+                Prefiro apenas confirmar minha presença (sem presente)
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -681,13 +834,21 @@ export default function WeddingGiftSite() {
     return (
       <div className="min-h-screen bg-gradient flex items-center justify-center px-4">
         <div className="text-center">
-          <Heart className="icon-center text-pink-500 animate-pulse mb-6" size={96} />
-          <h2 className="text-4xl font-bold text-gray-800 mb-4">Muito Obrigado!</h2>
-          <p className="text-xl text-gray-600 mb-8">
-            Sua presença é o que mais importa para nós! ❤️
+          <CheckCircle className="icon-center text-green-500 mb-6" size={96} />
+          <h2 className="text-4xl font-bold text-gray-800 mb-4">Presença Confirmada!</h2>
+          <p className="text-xl text-gray-600 mb-4">
+            Muito obrigado por confirmar! 🎉
+          </p>
+          <p className="text-gray-600 mb-8">
+            Seus dados foram salvos com sucesso.
+            <br />
+            Aguardamos você no nosso dia especial! ❤️
           </p>
           <button
-            onClick={() => setCurrentPage('home')}
+            onClick={() => {
+              setCurrentPage('home');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
             className="btn btn-primary"
             style={{width: 'auto', paddingLeft: '2rem', paddingRight: '2rem'}}
           >
