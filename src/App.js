@@ -72,6 +72,8 @@ export default function WeddingGiftSite() {
     } catch (error) { console.error('Erro ao carregar contribuições:', error); }
   };
 
+  // --- AÇÕES DO USUÁRIO ---
+
   const handleGuestIdentification = async () => {
     if (!guestName || !guestPhone) {
       alert('Por favor, preencha seu nome e telefone.');
@@ -193,6 +195,8 @@ export default function WeddingGiftSite() {
     }
   };
 
+  // --- AÇÕES DO ADMIN ---
+
   const handleAdminLogin = async () => {
     setAdminError('');
     setLoading(true);
@@ -227,22 +231,15 @@ export default function WeddingGiftSite() {
 
   const handleSaveGift = async () => {
     if (!newGift.name || !newGift.description) { alert('Preencha nome e descrição'); return; }
+    
     setLoading(true);
     try {
       if (editingId) {
         const giftRef = doc(db, 'gifts', editingId);
-        await updateDoc(giftRef, {
-          ...newGift,
-          updatedAt: serverTimestamp()
-        });
+        await updateDoc(giftRef, { ...newGift, updatedAt: serverTimestamp() });
         alert('✅ Item atualizado!');
       } else {
-        await addDoc(collection(db, 'gifts'), { 
-          ...newGift, 
-          reserved: false, 
-          reservedBy: null, 
-          createdAt: serverTimestamp() 
-        });
+        await addDoc(collection(db, 'gifts'), { ...newGift, reserved: false, reservedBy: null, createdAt: serverTimestamp() });
         alert('✅ Item adicionado!');
       }
       await loadGifts();
@@ -251,7 +248,7 @@ export default function WeddingGiftSite() {
   };
 
   const handleDeleteGift = async (giftId) => {
-    if (!window.confirm('Tem certeza?')) return;
+    if (!window.confirm('Tem certeza que deseja remover este item?')) return;
     setLoading(true);
     try {
       await deleteDoc(doc(db, 'gifts', giftId));
@@ -260,6 +257,8 @@ export default function WeddingGiftSite() {
       alert('✅ Removido!');
     } catch (error) { alert('Erro ao remover.'); } finally { setLoading(false); }
   };
+
+  // --- RENDERIZAÇÃO ---
 
   if (currentPage === 'home') {
     return (
@@ -289,8 +288,9 @@ export default function WeddingGiftSite() {
               </div>
               <button onClick={handleGuestIdentification} disabled={loading} className="btn btn-primary">{loading ? 'Aguarde...' : 'Entrar'}</button>
             </div>
-            <button onClick={() => setCurrentPage('adminLogin')} className="w-full mt-4 text-gray-600 text-sm" style={{background: 'none', border: 'none', cursor: 'pointer'}}>
-              <Lock style={{display: 'inline'}} size={16} /> Área do Administrador
+            {/* BOTÃO ESTILIZADO: Admin */}
+            <button onClick={() => setCurrentPage('adminLogin')} className="btn-text btn-text-gray w-full mt-4">
+              <Lock size={16} /> Área do Administrador
             </button>
           </div>
         </div>
@@ -330,7 +330,6 @@ export default function WeddingGiftSite() {
     
     return (
       <div className="min-h-screen bg-gradient py-8 px-4">
-        {/* AQUI ESTÁ A MUDANÇA: max-w-xl para centralizar e não ficar largo */}
         <div className="max-w-xl mx-auto">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Olá, {currentGuest.name}! 👋</h2>
@@ -357,7 +356,7 @@ export default function WeddingGiftSite() {
                           </a>
                         )}
                       </div>
-                      <button onClick={handleRemoveGiftSelection} className="text-red-600 text-sm hover:underline" style={{background:'none', border:'none', cursor:'pointer'}}>Remover</button>
+                      <button onClick={handleRemoveGiftSelection} className="btn-text btn-text-red" style={{fontSize: '0.8rem'}}>Remover</button>
                     </div>
                   </div>
                 )}
@@ -369,7 +368,7 @@ export default function WeddingGiftSite() {
                         <p className="text-sm text-gray-600 mb-1">💰 Contribuição PIX:</p>
                         <p className="font-bold text-2xl text-green-600">R$ {selectedPix.amount.toFixed(2)}</p>
                       </div>
-                      <button onClick={handleRemovePixSelection} className="text-red-600 text-sm hover:underline" style={{background:'none', border:'none', cursor:'pointer'}}>Remover</button>
+                      <button onClick={handleRemovePixSelection} className="btn-text btn-text-red" style={{fontSize: '0.8rem'}}>Remover</button>
                     </div>
                   </div>
                 )}
@@ -381,7 +380,6 @@ export default function WeddingGiftSite() {
             </div>
           )}
 
-          {/* Opção 1: PIX */}
           <div className="card mb-8">
             <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
               <DollarSign className="text-green-600" size={28} style={{marginRight: '0.5rem'}} />
@@ -437,7 +435,6 @@ export default function WeddingGiftSite() {
             </div>
           </div>
 
-          {/* Opção 2: PRESENTES */}
           <div className="card mb-8">
             <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
               <Gift className="text-pink-500" size={28} style={{marginRight: '0.5rem'}} />
@@ -496,7 +493,10 @@ export default function WeddingGiftSite() {
             <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="input" placeholder="Senha" />
             <button onClick={handleAdminLogin} className="btn btn-secondary">{loading ? '...' : 'Entrar'}</button>
           </div>
-          <button onClick={() => setCurrentPage('home')} className="w-full mt-4 text-gray-600 text-sm border-none bg-transparent cursor-pointer">Voltar</button>
+          {/* BOTÃO ESTILIZADO: Voltar */}
+          <button onClick={() => setCurrentPage('home')} className="btn-text btn-text-gray w-full mt-4">
+            Voltar
+          </button>
         </div>
       </div>
     );
@@ -509,12 +509,15 @@ export default function WeddingGiftSite() {
           <div className="card mb-8">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-gray-800">Painel Administrativo</h2>
-              <button onClick={() => { setIsAdmin(false); setCurrentPage('home'); }} className="text-red-600 font-bold border-none bg-transparent cursor-pointer">Sair</button>
+              {/* BOTÃO ESTILIZADO: Sair */}
+              <button onClick={() => { setIsAdmin(false); setCurrentPage('home'); }} className="btn-text btn-text-red">
+                Sair
+              </button>
             </div>
             <div className="grid grid-cols-3 gap-4 mb-8">
               <div className="stat-card badge-blue"><p>Participantes</p><h3>{guests.length}</h3></div>
               <div className="stat-card badge-green"><p>Itens Escolhidos</p><h3>{gifts.filter(g => g.reserved).length}</h3></div>
-              <div className="stat-card badge-purple"><p>PIX</p><h3>{pixContributions.length}</h3></div>
+              <div className="stat-card badge-purple"><p>Contribuições PIX</p><h3>{pixContributions.length}</h3></div>
             </div>
             
             <h3 className="text-lg font-bold mb-4">
@@ -531,6 +534,7 @@ export default function WeddingGiftSite() {
                 <span>Permitir múltiplas compras</span>
               </label>
               
+              {/* Botões do Form (Salvar ou Cancelar) */}
               <div style={{gridColumn: '1 / -1', display: 'flex', gap: '1rem'}}>
                 <button onClick={handleSaveGift} disabled={loading} className={`btn ${editingId ? 'btn-primary' : 'btn-success'}`} style={{flex: 1}}>
                   {editingId ? <><Edit size={20} /> Salvar Alterações</> : <><Plus size={20} /> Adicionar Item</>}
@@ -552,9 +556,25 @@ export default function WeddingGiftSite() {
                   <p className="text-xs text-gray-600">{gift.description}</p>
                   {gift.reserved && <p className="text-xs text-green-600 font-bold mt-2">Escolhido por: {gift.reservedBy}</p>}
                   
-                  <div className="absolute top-2 right-2 flex gap-1">
-                    <button onClick={() => handleStartEdit(gift)} disabled={loading} className="icon-btn" style={{backgroundColor: '#3b82f6', width:'1.5rem', height:'1.5rem'}} title="Editar"><Edit size={12} /></button>
-                    <button onClick={() => handleDeleteGift(gift.id)} disabled={loading} className="icon-btn" style={{width:'1.5rem', height:'1.5rem'}} title="Deletar"><Trash2 size={12} /></button>
+                  {/* Botões de Ação do Card */}
+                  <div className="absolute top-2 right-2 flex gap-2">
+                    <button 
+                      onClick={() => handleStartEdit(gift)} 
+                      disabled={loading}
+                      className="icon-btn" 
+                      style={{backgroundColor: '#3b82f6'}}
+                      title="Editar"
+                    >
+                      <Edit size={16} />
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteGift(gift.id)} 
+                      disabled={loading} 
+                      className="icon-btn"
+                      title="Deletar"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -571,7 +591,7 @@ export default function WeddingGiftSite() {
         <div className="text-center card max-w-md">
           <CheckCircle className="icon-center text-green-500 mb-6" size={96} />
           <h2 className="text-4xl font-bold text-gray-800 mb-4">Obrigado!</h2>
-          <p className="text-gray-600 mb-8">Sua confirmação e presente foram registrados com sucesso.</p>
+          <p className="text-gray-600 mb-8">Sua confirmação e presente foram registrados com sucesso. Mal podemos esperar para te ver!</p>
           <button onClick={() => setCurrentPage('home')} className="btn btn-primary w-auto mx-auto px-8">Voltar ao Início</button>
         </div>
       </div>
