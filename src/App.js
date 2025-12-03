@@ -719,7 +719,7 @@ export default function WeddingGiftSite() {
         <div className="text-center card max-w-md">
           <CheckCircle className="icon-center text-green-500 mb-6" size={96} />
           <h2 className="text-4xl font-bold text-gray-800 mb-4">Presença Confirmada!</h2>
-          <p className="text-xl text-gray-600 mb-4">Muito obrigado por confirmar! 🎉</p>
+          <p className="text-xl text-gray-600 mb-4">Muito obrigado por confirmar!</p>
           <p className="text-gray-600 mb-8">
             Seus dados e sua escolha de presente foram salvos com sucesso.<br />
             Aguardamos você no nosso dia especial! 
