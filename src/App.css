@@ -13,12 +13,11 @@ body {
 
 .min-h-screen {
   min-height: 100vh;
-  /* Adicionado para centralizar verticalmente telas de login/erro se usar essa classe no pai */
+  /* Garante centralização vertical se necessário */
   display: flex;
   flex-direction: column; 
 }
 
-/* Classe utilitária nova para centralizar conteúdo verticalmente na tela */
 .center-content {
   flex: 1;
   display: flex;
@@ -40,7 +39,7 @@ body {
   max-width: 1280px;
   margin: 0 auto;
   padding: 0 1rem;
-  width: 100%; /* Garante responsividade */
+  width: 100%;
 }
 
 .card {
@@ -48,7 +47,7 @@ body {
   border-radius: 1rem;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   padding: 2rem;
-  width: 100%; /* Garante que o card use a largura disponível */
+  width: 100%;
 }
 
 .input {
@@ -71,6 +70,7 @@ body {
   cursor: not-allowed;
 }
 
+/* BOTÕES PRINCIPAIS */
 .btn {
   width: 100%;
   padding: 0.75rem 1rem;
@@ -86,94 +86,69 @@ body {
   gap: 0.5rem;
 }
 
-.btn-primary {
-  background-color: #ec4899;
-  color: white;
+.btn-primary { background-color: #ec4899; color: white; }
+.btn-primary:hover:not(:disabled) { background-color: #db2777; }
+
+.btn-secondary { background-color: #1f2937; color: white; }
+.btn-secondary:hover:not(:disabled) { background-color: #111827; }
+
+.btn-success { background-color: #10b981; color: white; }
+.btn-success:hover:not(:disabled) { background-color: #059669; }
+
+.btn-danger { background-color: #ef4444; color: white; }
+.btn-danger:hover:not(:disabled) { background-color: #dc2626; }
+
+.btn:disabled { background-color: #9ca3af; cursor: not-allowed; }
+
+/* --- NOVOS ESTILOS PARA OS BOTÕES DE TEXTO (Sair, Voltar, Admin) --- */
+.btn-text {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 0.9rem;
 }
 
-.btn-primary:hover:not(:disabled) {
-  background-color: #db2777;
+/* Botão Cinza (Voltar, Área Admin) */
+.btn-text-gray {
+  color: #6b7280; 
 }
-
-.btn-secondary {
-  background-color: #1f2937;
-  color: white;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background-color: #111827;
-}
-
-.btn-success {
-  background-color: #10b981;
-  color: white;
-}
-
-.btn-success:hover:not(:disabled) {
-  background-color: #059669;
-}
-
-.btn-danger {
-  background-color: #ef4444;
-  color: white;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background-color: #dc2626;
-}
-
-.btn:disabled {
-  background-color: #9ca3af;
-  cursor: not-allowed;
-}
-
-.text-center {
-  text-align: center;
-}
-
-.text-left {
-  text-align: left;
-}
-
-.text-gray-600 {
-  color: #4b5563;
-}
-
-.text-gray-700 {
-  color: #374151;
-}
-
-.text-gray-800 {
+.btn-text-gray:hover {
+  background-color: #e5e7eb; /* Fundo cinza suave */
   color: #1f2937;
 }
 
-.text-pink-500 {
-  color: #ec4899;
-}
-
-.text-green-600 {
-  color: #059669;
-}
-
-.text-blue-600 {
-  color: #2563eb;
-}
-
-.text-red-600 {
+/* Botão Vermelho (Sair, Remover) */
+.btn-text-red {
   color: #dc2626;
 }
-
-.font-bold {
-  font-weight: 700;
+.btn-text-red:hover {
+  background-color: #fee2e2; /* Fundo vermelho suave */
+  color: #991b1b;
 }
 
-.font-semibold {
-  font-weight: 600;
-}
+/* Utilitários de Texto */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-700 { color: #374151; }
+.text-gray-800 { color: #1f2937; }
+.text-pink-500 { color: #ec4899; }
+.text-green-600 { color: #059669; }
+.text-blue-600 { color: #2563eb; }
+.text-red-600 { color: #dc2626; }
 
-.font-medium {
-  font-medium: 500;
-}
+.font-bold { font-weight: 700; }
+.font-semibold { font-weight: 600; }
+.font-medium { font-weight: 500; }
 
 .mb-2 { margin-bottom: 0.5rem; }
 .mb-4 { margin-bottom: 1rem; }
@@ -191,57 +166,29 @@ body {
 .px-4 { padding-left: 1rem; padding-right: 1rem; }
 .px-8 { padding-left: 2rem; padding-right: 2rem; }
 
-.space-y-5 > * + * {
-  margin-top: 1.25rem;
-}
+.space-y-5 > * + * { margin-top: 1.25rem; }
+.space-y-4 > * + * { margin-top: 1rem; }
 
-.space-y-4 > * + * {
-  margin-top: 1rem;
-}
+.grid { display: grid; gap: 1.5rem; }
+.grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
 
-.grid {
-  display: grid;
-  gap: 1.5rem;
-}
-
-.grid-cols-3 {
-  grid-template-columns: repeat(3, 1fr);
-}
-
-.grid-cols-2 {
-  grid-template-columns: repeat(2, 1fr);
-}
-
-.flex {
-  display: flex;
-}
-
-.items-center {
-  align-items: center;
-}
-
-.justify-center {
-  justify-content: center;
-}
-
-.justify-between {
-  justify-content: space-between;
-}
-
-.gap-4 {
-  gap: 1rem;
-}
+.flex { display: flex; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.gap-4 { gap: 1rem; }
 
 .gift-card {
-  border: 2px solid #fbcfe8;
+  border: 1px solid #e5e7eb;
   border-radius: 0.75rem;
   padding: 1rem;
   transition: all 0.3s;
   background: white;
   display: flex;
   flex-direction: column;
-  align-items: center; /* Centraliza conteúdo interno */
-  text-align: center;  /* Centraliza texto interno */
+  align-items: center;
+  text-align: center;
 }
 
 .gift-card:hover {
@@ -249,25 +196,14 @@ body {
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
-.gift-card.reserved {
-  border-color: #d1d5db;
-  opacity: 0.6;
-}
+.gift-card.reserved { border-color: #d1d5db; opacity: 0.6; }
+.gift-card.selected-card { border-color: #10b981; border-width: 3px; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1); }
 
-.gift-card.selected-card {
-  border-color: #10b981;
-  border-width: 3px;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
-}
-
-.badge-green {
-  background-color: #d1fae5;
-  color: #065f46;
-}
+.badge-green { background-color: #d1fae5; color: #065f46; }
 
 .gift-card img {
   width: 100%;
-  height: 200px;
+  height: 160px;
   object-fit: contain;
   background-color: #fff;
   padding: 0.5rem; 
@@ -286,41 +222,14 @@ body {
   text-align: center;
 }
 
-.badge-gray {
-  background-color: #f3f4f6;
-  color: #4b5563;
-}
+.badge-gray { background-color: #f3f4f6; color: #4b5563; }
+.badge-blue { background-color: #dbeafe; color: #1e40af; }
+.badge-green { background-color: #d1fae5; color: #065f46; }
+.badge-purple { background-color: #e9d5ff; color: #6b21a8; }
 
-.badge-blue {
-  background-color: #dbeafe;
-  color: #1e40af;
-}
-
-.badge-green {
-  background-color: #d1fae5;
-  color: #065f46;
-}
-
-.badge-purple {
-  background-color: #e9d5ff;
-  color: #6b21a8;
-}
-
-.stat-card {
-  padding: 1rem;
-  border-radius: 0.5rem;
-}
-
-.stat-card h3 {
-  font-size: 2rem;
-  font-weight: 700;
-  margin-top: 0.5rem;
-}
-
-.stat-card p {
-  font-size: 0.875rem;
-  color: #4b5563;
-}
+.stat-card { padding: 1rem; border-radius: 0.5rem; }
+.stat-card h3 { font-size: 2rem; font-weight: 700; margin-top: 0.5rem; }
+.stat-card p { font-size: 0.875rem; color: #4b5563; }
 
 .link {
   color: #2563eb;
@@ -331,10 +240,7 @@ body {
   gap: 0.25rem;
   margin-top: 0.5rem;
 }
-
-.link:hover {
-  color: #1e40af;
-}
+.link:hover { color: #1e40af; }
 
 .divider {
   width: 6rem;
@@ -349,6 +255,7 @@ body {
   border-radius: 0.5rem;
   margin-bottom: 1rem;
   text-align: center;
+  border: 1px dashed #d1d5db;
 }
 
 .pix-key {
@@ -363,41 +270,25 @@ body {
 .top-2 { top: 0.5rem; }
 .right-2 { right: 0.5rem; }
 
-/* Garante que o ícone fique centralizado */
-.icon-center {
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
-}
+.icon-center { display: block; margin: 0 auto; }
 
 .icon-btn {
   background-color: #ef4444;
   color: white;
   border: none;
-  border-radius: 9999px;
-  padding: 0.5rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex; /* Melhora alinhamento do ícone dentro do botão */
-  align-items: center;
-  justify-content: center;
-}
-
-.icon-btn:hover:not(:disabled) {
-  background-color: #dc2626;
-}
-
-.label-checkbox {
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-}
-
-.checkbox {
-  width: 1.25rem;
-  height: 1.25rem;
+  justify-content: center;
   cursor: pointer;
+  transition: all 0.2s;
 }
+.icon-btn:hover:not(:disabled) { background-color: #dc2626; }
+
+.label-checkbox { display: flex; align-items: center; gap: 0.5rem; }
+.checkbox { width: 1.25rem; height: 1.25rem; cursor: pointer; }
 
 .welcome-text {
   font-style: italic;
@@ -407,19 +298,10 @@ body {
   line-height: 1.6;
 }
 
-/* Responsivo */
 @media (max-width: 768px) {
-  .grid-cols-3,
-  .grid-cols-2 {
-    grid-template-columns: 1fr;
-  }
-  
+  .grid-cols-3, .grid-cols-2 { grid-template-columns: 1fr; }
   .text-5xl { font-size: 2rem; }
   .text-4xl { font-size: 1.75rem; }
   .text-3xl { font-size: 1.5rem; }
-  
-  /* Ajuste de padding do card em mobile */
-  .card {
-    padding: 1.5rem;
-  }
+  .card { padding: 1.5rem; }
 }
