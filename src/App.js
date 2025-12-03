@@ -14,26 +14,27 @@ import {
 import './App.css';
 
 export default function WeddingGiftSite() {
-  // Alteração 3: Nova página 'intro' adicionada ao fluxo
+  // ESTADO: Controle de Navegação
   const [currentPage, setCurrentPage] = useState('home'); 
   const [isAdmin, setIsAdmin] = useState(false);
-  const [currentGuest, setCurrentGuest] = useState(null);
   const [loading, setLoading] = useState(false);
   
-  // Alteração 2: Removidos estados de Email e Companions
+  // ESTADO: Dados do Convidado (APENAS NOME E TELEFONE AGORA)
   const [guestName, setGuestName] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
+  const [currentGuest, setCurrentGuest] = useState(null);
   
+  // ESTADO: Listas de Dados
   const [gifts, setGifts] = useState([]);
   const [guests, setGuests] = useState([]);
   const [pixContributions, setPixContributions] = useState([]);
   
+  // ESTADO: Seleções
   const [pixAmount, setPixAmount] = useState('');
   const [selectedGift, setSelectedGift] = useState(null);
   const [selectedPix, setSelectedPix] = useState(null);
   
-  // Alteração 5: Removido estado noContribution
-  
+  // ESTADO: Admin
   const [adminPassword, setAdminPassword] = useState('');
   const [adminError, setAdminError] = useState('');
   const [newGift, setNewGift] = useState({
@@ -89,8 +90,9 @@ export default function WeddingGiftSite() {
     }
   };
 
+  // FUNÇÃO DE LOGIN DO CONVIDADO SIMPLIFICADA
   const handleGuestIdentification = async () => {
-    // Alteração 2: Validação simplificada (apenas nome e telefone)
+    // Validação APENAS para nome e telefone
     if (!guestName || !guestPhone) {
       alert('Por favor, preencha seu nome e telefone.');
       return;
@@ -102,15 +104,15 @@ export default function WeddingGiftSite() {
       const guest = {
         name: guestName,
         phone: guestPhone,
-        // email e companions removidos
         timestamp: serverTimestamp()
+        // Email e Acompanhantes removidos do envio ao banco
       };
       
       const docRef = await addDoc(collection(db, 'guests'), guest);
       
       setCurrentGuest({ id: docRef.id, ...guest });
       
-      // Alteração 3: Redireciona para a tela de Introdução em vez de presentes direto
+      // Redireciona para a tela de Introdução (Passo 2)
       setCurrentPage('intro'); 
       
       await loadGuests();
@@ -147,10 +149,7 @@ export default function WeddingGiftSite() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Alteração 5: Removida função handleSelectNoContribution
-
   const handleFinalConfirmation = async () => {
-    // Alteração 5: Validação obriga escolher algo
     if (!selectedGift && !selectedPix) {
       alert('⚠️ Para confirmar sua presença, por favor selecione um presente ou uma contribuição PIX.');
       return;
@@ -304,6 +303,9 @@ export default function WeddingGiftSite() {
     }
   };
 
+  // --- RENDERIZAÇÃO DAS TELAS ---
+
+  // TELA 1: HOME (Cadastro Simplificado)
   if (currentPage === 'home') {
     return (
       <div className="min-h-screen bg-gradient">
@@ -321,6 +323,7 @@ export default function WeddingGiftSite() {
             </h2>
             
             <div className="space-y-5">
+              {/* CAMPO NOME */}
               <div>
                 <label className="text-gray-700 font-medium mb-2" style={{display: 'block'}}>Nome Completo *</label>
                 <input
@@ -333,8 +336,9 @@ export default function WeddingGiftSite() {
                 />
               </div>
 
-              {/* Alteração 2: Campo Email e Acompanhantes removidos */}
+              {/* AQUI ESTAVAM O EMAIL E O CONTADOR DE PESSOAS - FORAM REMOVIDOS */}
 
+              {/* CAMPO TELEFONE */}
               <div>
                 <label className="text-gray-700 font-medium mb-2" style={{display: 'block'}}>Telefone *</label>
                 <input
@@ -369,7 +373,7 @@ export default function WeddingGiftSite() {
     );
   }
 
-  // Alteração 3: Nova Tela de Introdução
+  // TELA 2: INTRODUÇÃO (Explicação)
   if (currentPage === 'intro' && currentGuest) {
     return (
       <div className="min-h-screen bg-gradient py-12 px-4">
@@ -411,6 +415,7 @@ export default function WeddingGiftSite() {
     );
   }
 
+  // TELA DE LOGIN ADMIN
   if (currentPage === 'adminLogin') {
     return (
       <div className="min-h-screen bg-gradient-gray flex items-center justify-center px-4">
@@ -452,6 +457,7 @@ export default function WeddingGiftSite() {
     );
   }
 
+  // TELA PAINEL ADMIN
   if (currentPage === 'admin' && isAdmin) {
     return (
       <div className="min-h-screen py-8 px-4" style={{backgroundColor: '#f3f4f6'}}>
@@ -542,6 +548,7 @@ export default function WeddingGiftSite() {
     );
   }
 
+  // TELA 3: ESCOLHA DE PRESENTES / PIX
   if (currentPage === 'gifts' && currentGuest) {
     const hasSelection = selectedGift || selectedPix;
     
@@ -609,7 +616,7 @@ export default function WeddingGiftSite() {
             </div>
           )}
 
-          {/* Alteração 4: PIX primeiro */}
+          {/* Opção 1: PIX (AGORA EM PRIMEIRO) */}
           <div className="card mb-8">
             <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
               <DollarSign className="text-green-600" size={32} style={{marginRight: '0.75rem'}} />
@@ -651,13 +658,12 @@ export default function WeddingGiftSite() {
             </div>
           </div>
 
-          {/* Alteração 4: Presentes depois */}
+          {/* Opção 2: PRESENTES */}
           <div className="card mb-8">
             <h3 className="text-2xl font-bold text-gray-800 mb-2 flex items-center">
               <Gift className="text-pink-500" size={32} style={{marginRight: '0.75rem'}} />
               Opção 2: Lista de Presentes
             </h3>
-            {/* Alteração 6: Disclaimer explícito */}
             <p className="text-gray-600 mb-6 text-sm bg-gray-50 p-2 rounded border border-gray-200">
               ℹ️ <strong>Nota:</strong> Os links nos botões "Ver produto" são apenas sugestões de modelo/marca. 
               Você pode comprar em qualquer loja física ou online de sua preferência.
@@ -706,8 +712,6 @@ export default function WeddingGiftSite() {
               </div>
             )}
           </div>
-
-          {/* Alteração 5: Removido botão de "Não dar nada" */}
         </div>
       </div>
     );
