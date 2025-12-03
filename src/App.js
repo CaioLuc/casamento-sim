@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+// ATENÇÃO: Verifique se Edit e X estão nesta linha abaixo
 import { Heart, Gift, DollarSign, Lock, Trash2, Plus, ExternalLink, AlertCircle, CheckCircle, Send, Info, Edit, X } from 'lucide-react';
 import { db } from './firebase';
 import { 
@@ -14,30 +15,27 @@ import {
 import './App.css';
 
 export default function WeddingGiftSite() {
-  // --- ESTADOS DE CONTROLE ---
   const [currentPage, setCurrentPage] = useState('home'); 
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  // --- DADOS DO CONVIDADO ---
   const [guestName, setGuestName] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
   const [currentGuest, setCurrentGuest] = useState(null);
   
-  // --- DADOS DO SISTEMA ---
   const [gifts, setGifts] = useState([]);
   const [guests, setGuests] = useState([]);
   const [pixContributions, setPixContributions] = useState([]);
   
-  // --- SELEÇÕES (Combo Permitido) ---
   const [pixAmount, setPixAmount] = useState('');
   const [selectedGift, setSelectedGift] = useState(null);
   const [selectedPix, setSelectedPix] = useState(null);
   
-  // --- ADMIN & EDIÇÃO ---
+  // ESTADOS PARA O ADMIN E EDIÇÃO
   const [adminPassword, setAdminPassword] = useState('');
   const [adminError, setAdminError] = useState('');
-  const [editingId, setEditingId] = useState(null); // Estado para controlar qual item está sendo editado
+  const [editingId, setEditingId] = useState(null); // ID do item sendo editado
+  
   const [newGift, setNewGift] = useState({
     name: '',
     description: '',
@@ -76,7 +74,7 @@ export default function WeddingGiftSite() {
     } catch (error) { console.error('Erro ao carregar contribuições:', error); }
   };
 
-  // --- AÇÕES DO CONVIDADO ---
+  // --- AÇÕES DO USUÁRIO ---
 
   const handleGuestIdentification = async () => {
     if (!guestName || !guestPhone) {
@@ -121,7 +119,7 @@ export default function WeddingGiftSite() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Função auxiliar para os botões de PIX rápido
+  // FUNÇÃO NOVA: Botões rápidos de PIX
   const handlePixPreset = (value) => {
     setPixAmount(value.toString());
   };
@@ -217,7 +215,7 @@ export default function WeddingGiftSite() {
     } catch (error) { setAdminError('Erro de conexão.'); } finally { setLoading(false); }
   };
 
-  // Prepara o formulário para edição
+  // FUNÇÃO NOVA: Começar edição
   const handleStartEdit = (gift) => {
     setNewGift({
       name: gift.name,
@@ -227,23 +225,24 @@ export default function WeddingGiftSite() {
       allowMultiple: gift.allowMultiple || false
     });
     setEditingId(gift.id);
+    // Rola a tela para cima para ver o formulário
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Cancela a edição
+  // FUNÇÃO NOVA: Cancelar edição
   const handleCancelEdit = () => {
     setEditingId(null);
     setNewGift({ name: '', description: '', image: '', link: '', allowMultiple: false });
   };
 
-  // Salva ou Atualiza o presente
+  // FUNÇÃO ATUALIZADA: Salva (Novo) ou Atualiza (Existente)
   const handleSaveGift = async () => {
     if (!newGift.name || !newGift.description) { alert('Preencha nome e descrição'); return; }
     
     setLoading(true);
     try {
       if (editingId) {
-        // MODO EDIÇÃO
+        // ATUALIZAÇÃO
         const giftRef = doc(db, 'gifts', editingId);
         await updateDoc(giftRef, {
           ...newGift,
@@ -251,7 +250,7 @@ export default function WeddingGiftSite() {
         });
         alert('✅ Item atualizado com sucesso!');
       } else {
-        // MODO ADIÇÃO
+        // CRIAÇÃO
         await addDoc(collection(db, 'gifts'), { 
           ...newGift, 
           reserved: false, 
@@ -262,7 +261,7 @@ export default function WeddingGiftSite() {
       }
 
       await loadGifts();
-      handleCancelEdit(); // Limpa o form e o estado de edição
+      handleCancelEdit(); // Limpa tudo
     } catch (error) { 
       console.error(error);
       alert('Erro ao salvar item.'); 
@@ -272,17 +271,12 @@ export default function WeddingGiftSite() {
   };
 
   const handleDeleteGift = async (giftId) => {
-    if (!window.confirm('Tem certeza que deseja remover este item permanentemente?')) return;
+    if (!window.confirm('Tem certeza que deseja remover este item?')) return;
     setLoading(true);
     try {
       await deleteDoc(doc(db, 'gifts', giftId));
       await loadGifts();
-      
-      // Se estava editando o item que foi deletado, limpa o form
-      if (editingId === giftId) {
-        handleCancelEdit();
-      }
-      
+      if (editingId === giftId) handleCancelEdit();
       alert('✅ Removido!');
     } catch (error) { alert('Erro ao remover.'); } finally { setLoading(false); }
   };
@@ -408,7 +402,7 @@ export default function WeddingGiftSite() {
             </div>
           )}
 
-          {/* Opção 1: PIX COM BOTÕES PRÉ-DEFINIDOS */}
+          {/* Opção 1: PIX COM BOTÕES */}
           <div className="card mb-8">
             <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
               <DollarSign className="text-green-600" size={32} style={{marginRight: '0.75rem'}} />
@@ -422,7 +416,6 @@ export default function WeddingGiftSite() {
 
               {!selectedPix ? (
                 <>
-                  {/* Botões de Valor Rápido */}
                   <div style={{display: 'flex', gap: '0.5rem', marginBottom: '1rem', justifyContent: 'center', flexWrap: 'wrap'}}>
                     {[50, 100, 150, 200].map(val => (
                       <button
@@ -575,7 +568,7 @@ export default function WeddingGiftSite() {
                       onClick={() => handleStartEdit(gift)} 
                       disabled={loading}
                       className="icon-btn" 
-                      style={{backgroundColor: '#3b82f6'}} // Azul para editar
+                      style={{backgroundColor: '#3b82f6'}}
                       title="Editar"
                     >
                       <Edit size={16} />
