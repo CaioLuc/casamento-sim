@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-// ATENÇÃO: Verifique se Edit e X estão nesta linha abaixo
 import { Heart, Gift, DollarSign, Lock, Trash2, Plus, ExternalLink, AlertCircle, CheckCircle, Send, Info, Edit, X } from 'lucide-react';
 import { db } from './firebase';
 import { 
@@ -31,10 +30,9 @@ export default function WeddingGiftSite() {
   const [selectedGift, setSelectedGift] = useState(null);
   const [selectedPix, setSelectedPix] = useState(null);
   
-  // ESTADOS PARA O ADMIN E EDIÇÃO
   const [adminPassword, setAdminPassword] = useState('');
   const [adminError, setAdminError] = useState('');
-  const [editingId, setEditingId] = useState(null); // ID do item sendo editado
+  const [editingId, setEditingId] = useState(null);
   
   const [newGift, setNewGift] = useState({
     name: '',
@@ -73,8 +71,6 @@ export default function WeddingGiftSite() {
       setPixContributions(pixData);
     } catch (error) { console.error('Erro ao carregar contribuições:', error); }
   };
-
-  // --- AÇÕES DO USUÁRIO ---
 
   const handleGuestIdentification = async () => {
     if (!guestName || !guestPhone) {
@@ -119,7 +115,6 @@ export default function WeddingGiftSite() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // FUNÇÃO NOVA: Botões rápidos de PIX
   const handlePixPreset = (value) => {
     setPixAmount(value.toString());
   };
@@ -198,8 +193,6 @@ export default function WeddingGiftSite() {
     }
   };
 
-  // --- AÇÕES DO ADMIN (ADD, EDIT, DELETE) ---
-
   const handleAdminLogin = async () => {
     setAdminError('');
     setLoading(true);
@@ -215,7 +208,6 @@ export default function WeddingGiftSite() {
     } catch (error) { setAdminError('Erro de conexão.'); } finally { setLoading(false); }
   };
 
-  // FUNÇÃO NOVA: Começar edição
   const handleStartEdit = (gift) => {
     setNewGift({
       name: gift.name,
@@ -225,53 +217,41 @@ export default function WeddingGiftSite() {
       allowMultiple: gift.allowMultiple || false
     });
     setEditingId(gift.id);
-    // Rola a tela para cima para ver o formulário
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // FUNÇÃO NOVA: Cancelar edição
   const handleCancelEdit = () => {
     setEditingId(null);
     setNewGift({ name: '', description: '', image: '', link: '', allowMultiple: false });
   };
 
-  // FUNÇÃO ATUALIZADA: Salva (Novo) ou Atualiza (Existente)
   const handleSaveGift = async () => {
     if (!newGift.name || !newGift.description) { alert('Preencha nome e descrição'); return; }
-    
     setLoading(true);
     try {
       if (editingId) {
-        // ATUALIZAÇÃO
         const giftRef = doc(db, 'gifts', editingId);
         await updateDoc(giftRef, {
           ...newGift,
           updatedAt: serverTimestamp()
         });
-        alert('✅ Item atualizado com sucesso!');
+        alert('✅ Item atualizado!');
       } else {
-        // CRIAÇÃO
         await addDoc(collection(db, 'gifts'), { 
           ...newGift, 
           reserved: false, 
           reservedBy: null, 
           createdAt: serverTimestamp() 
         });
-        alert('✅ Item adicionado com sucesso!');
+        alert('✅ Item adicionado!');
       }
-
       await loadGifts();
-      handleCancelEdit(); // Limpa tudo
-    } catch (error) { 
-      console.error(error);
-      alert('Erro ao salvar item.'); 
-    } finally { 
-      setLoading(false); 
-    }
+      handleCancelEdit();
+    } catch (error) { console.error(error); alert('Erro ao salvar item.'); } finally { setLoading(false); }
   };
 
   const handleDeleteGift = async (giftId) => {
-    if (!window.confirm('Tem certeza que deseja remover este item?')) return;
+    if (!window.confirm('Tem certeza?')) return;
     setLoading(true);
     try {
       await deleteDoc(doc(db, 'gifts', giftId));
@@ -281,13 +261,11 @@ export default function WeddingGiftSite() {
     } catch (error) { alert('Erro ao remover.'); } finally { setLoading(false); }
   };
 
-  // --- RENDERIZAÇÃO ---
-
   if (currentPage === 'home') {
     return (
       <div className="min-h-screen bg-gradient">
         <div className="container py-12">
-          <div className="max-w-2xl text-center mb-8">
+          <div className="max-w-2xl mx-auto text-center mb-8">
             <Heart className="icon-center text-pink-500 mb-4 animate-pulse" size={64} />
             <h1 className="text-5xl font-bold text-gray-800 mb-2">Caio & Evelyn</h1>
             <p className="text-xl text-gray-600 mb-6">Chá de Casa Nova / Enxoval</p>
@@ -323,9 +301,9 @@ export default function WeddingGiftSite() {
   if (currentPage === 'intro' && currentGuest) {
     return (
       <div className="min-h-screen bg-gradient py-12 px-4">
-        <div className="max-w-2xl mx-auto card text-center">
+        <div className="max-w-md mx-auto card text-center">
           <Info className="icon-center text-blue-600 mb-4" size={48} />
-          <h2 className="text-3xl font-bold text-gray-800 mb-6">Como funciona?</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-6">Como funciona?</h2>
           <div className="text-left space-y-4 mb-8 text-gray-600">
             <p className="text-lg">Olá <strong>{currentGuest.name}</strong>!</p>
             <p>Para nos ajudar a montar nosso cantinho, você pode escolher:</p>
@@ -352,10 +330,11 @@ export default function WeddingGiftSite() {
     
     return (
       <div className="min-h-screen bg-gradient py-8 px-4">
-        <div className="max-w-6xl mx-auto">
+        {/* AQUI ESTÁ A MUDANÇA: max-w-xl para centralizar e não ficar largo */}
+        <div className="max-w-xl mx-auto">
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-800 mb-2">Olá, {currentGuest.name}! 👋</h2>
-            <p className="text-gray-600">Escolha como prefere nos presentear (você pode escolher ambos)</p>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Olá, {currentGuest.name}! 👋</h2>
+            <p className="text-gray-600">Escolha como prefere nos presentear</p>
           </div>
 
           {hasSelection && (
@@ -402,10 +381,10 @@ export default function WeddingGiftSite() {
             </div>
           )}
 
-          {/* Opção 1: PIX COM BOTÕES */}
+          {/* Opção 1: PIX */}
           <div className="card mb-8">
-            <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-              <DollarSign className="text-green-600" size={32} style={{marginRight: '0.75rem'}} />
+            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+              <DollarSign className="text-green-600" size={28} style={{marginRight: '0.5rem'}} />
               Opção 1: Contribuir via PIX
             </h3>
             <div className="max-w-md mx-auto">
@@ -416,7 +395,16 @@ export default function WeddingGiftSite() {
 
               {!selectedPix ? (
                 <>
-                  <div style={{display: 'flex', gap: '0.5rem', marginBottom: '1rem', justifyContent: 'center', flexWrap: 'wrap'}}>
+                  <input
+                    type="number" step="0.01" min="0.01"
+                    value={pixAmount}
+                    onChange={(e) => setPixAmount(e.target.value)}
+                    placeholder="Digite o valor (R$)"
+                    className="input mb-4"
+                  />
+                  
+                  {/* Botões de Valor Rápido EMBAIXO do Input */}
+                  <div style={{display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', justifyContent: 'center', flexWrap: 'wrap'}}>
                     {[50, 100, 150, 200].map(val => (
                       <button
                         key={val}
@@ -424,9 +412,11 @@ export default function WeddingGiftSite() {
                         className="btn"
                         style={{
                           width: 'auto', 
+                          padding: '0.5rem 1rem',
                           backgroundColor: pixAmount === val.toString() ? '#ec4899' : '#f3f4f6',
                           color: pixAmount === val.toString() ? 'white' : '#4b5563',
-                          border: '1px solid #d1d5db'
+                          border: '1px solid #d1d5db',
+                          fontSize: '0.9rem'
                         }}
                       >
                         R$ {val}
@@ -434,13 +424,6 @@ export default function WeddingGiftSite() {
                     ))}
                   </div>
 
-                  <input
-                    type="number" step="0.01" min="0.01"
-                    value={pixAmount}
-                    onChange={(e) => setPixAmount(e.target.value)}
-                    placeholder="Outro valor (R$)"
-                    className="input mb-4"
-                  />
                   <button onClick={handleSelectPix} disabled={loading} className="btn btn-success">
                     <DollarSign size={20} /> Adicionar Valor PIX
                   </button>
@@ -456,33 +439,41 @@ export default function WeddingGiftSite() {
 
           {/* Opção 2: PRESENTES */}
           <div className="card mb-8">
-            <h3 className="text-2xl font-bold text-gray-800 mb-2 flex items-center">
-              <Gift className="text-pink-500" size={32} style={{marginRight: '0.75rem'}} />
+            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+              <Gift className="text-pink-500" size={28} style={{marginRight: '0.5rem'}} />
               Opção 2: Lista de Presentes
             </h3>
-            <p className="text-gray-600 mb-6 text-sm bg-gray-50 p-2 rounded border border-gray-200">
+            <p className="text-gray-600 mb-6 text-sm bg-gray-50 p-3 rounded border border-gray-200">
               ℹ️ <strong>Nota:</strong> Os links são sugestões de modelo. Compre onde preferir!
             </p>
             
             {gifts.length === 0 ? (
               <p className="text-center text-gray-600 py-8">Nenhum presente disponível no momento</p>
             ) : (
-              <div className="grid grid-cols-3 gap-4">
+              // Usando grid-cols-2 em mobile/tablet e 3 apenas em telas bem grandes se couber
+              <div className="grid grid-cols-2 gap-4">
                 {gifts.map(gift => (
-                  <div key={gift.id} className={`gift-card ${gift.reserved && !gift.allowMultiple ? 'reserved' : ''} ${selectedGift?.id === gift.id ? 'selected-card' : ''}`} style={selectedGift?.id === gift.id ? {borderColor: '#10b981', borderWidth: '3px'} : {}}>
+                  <div key={gift.id} className={`gift-card ${gift.reserved && !gift.allowMultiple ? 'reserved' : ''} ${selectedGift?.id === gift.id ? 'selected-card' : ''}`} style={selectedGift?.id === gift.id ? {borderColor: '#10b981', borderWidth: '2px'} : {}}>
                     {gift.image && <img src={gift.image} alt={gift.name} />}
-                    <h4 className="font-bold text-lg mb-2">{gift.name}</h4>
-                    <p className="text-sm text-gray-600 mb-4">{gift.description}</p>
-                    {gift.reserved && !gift.allowMultiple ? (
-                      <div className="badge badge-gray w-full"><Lock size={16} /> Já foi escolhido</div>
-                    ) : selectedGift?.id === gift.id ? (
-                      <div className="badge badge-green w-full"><CheckCircle size={16} /> Selecionado</div>
-                    ) : (
-                      <button onClick={() => handleSelectGift(gift)} disabled={loading} className="btn btn-primary"><Gift size={16} /> Selecionar este</button>
-                    )}
-                    {gift.link && (
-                      <a href={gift.link} target="_blank" rel="noopener noreferrer" className="link block text-center mt-2"><ExternalLink size={16} /> Ver modelo</a>
-                    )}
+                    <h4 className="font-bold text-md mb-1 leading-tight">{gift.name}</h4>
+                    <p className="text-xs text-gray-600 mb-3">{gift.description}</p>
+                    
+                    <div className="mt-auto space-y-2">
+                      {gift.reserved && !gift.allowMultiple ? (
+                        <div className="badge badge-gray w-full"><Lock size={14} /> Esgotado</div>
+                      ) : selectedGift?.id === gift.id ? (
+                        <div className="badge badge-green w-full"><CheckCircle size={14} /> Selecionado</div>
+                      ) : (
+                        <button onClick={() => handleSelectGift(gift)} disabled={loading} className="btn btn-primary" style={{padding: '0.5rem', fontSize: '0.9rem'}}>
+                          <Gift size={16} /> Selecionar
+                        </button>
+                      )}
+                      {gift.link && (
+                        <a href={gift.link} target="_blank" rel="noopener noreferrer" className="link block text-center text-xs">
+                          <ExternalLink size={12} /> Ver modelo
+                        </a>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -493,18 +484,19 @@ export default function WeddingGiftSite() {
     );
   }
 
+  // --- ADMIN RENDER ---
   if (currentPage === 'adminLogin') {
     return (
       <div className="min-h-screen bg-gradient-gray flex items-center justify-center px-4">
-        <div className="card" style={{maxWidth: '28rem', width: '100%'}}>
+        <div className="card" style={{maxWidth: '24rem', width: '100%'}}>
           <Lock className="icon-center text-gray-700 mb-4" size={48} />
-          <h2 className="text-2xl font-bold text-center mb-6">Área do Administrador</h2>
-          {adminError && <div className="text-red-600 bg-red-100 p-2 rounded mb-4">{adminError}</div>}
+          <h2 className="text-xl font-bold text-center mb-6">Área do Administrador</h2>
+          {adminError && <div className="text-red-600 bg-red-100 p-2 rounded mb-4 text-sm">{adminError}</div>}
           <div className="space-y-4">
             <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="input" placeholder="Senha" />
             <button onClick={handleAdminLogin} className="btn btn-secondary">{loading ? '...' : 'Entrar'}</button>
           </div>
-          <button onClick={() => setCurrentPage('home')} className="w-full mt-4 text-gray-600 border-none bg-transparent cursor-pointer">Voltar</button>
+          <button onClick={() => setCurrentPage('home')} className="w-full mt-4 text-gray-600 text-sm border-none bg-transparent cursor-pointer">Voltar</button>
         </div>
       </div>
     );
@@ -513,20 +505,19 @@ export default function WeddingGiftSite() {
   if (currentPage === 'admin' && isAdmin) {
     return (
       <div className="min-h-screen py-8 px-4" style={{backgroundColor: '#f3f4f6'}}>
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <div className="card mb-8">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-3xl font-bold text-gray-800">Painel Administrativo</h2>
+              <h2 className="text-2xl font-bold text-gray-800">Painel Administrativo</h2>
               <button onClick={() => { setIsAdmin(false); setCurrentPage('home'); }} className="text-red-600 font-bold border-none bg-transparent cursor-pointer">Sair</button>
             </div>
             <div className="grid grid-cols-3 gap-4 mb-8">
               <div className="stat-card badge-blue"><p>Participantes</p><h3>{guests.length}</h3></div>
               <div className="stat-card badge-green"><p>Itens Escolhidos</p><h3>{gifts.filter(g => g.reserved).length}</h3></div>
-              <div className="stat-card badge-purple"><p>Contribuições PIX</p><h3>{pixContributions.length}</h3></div>
+              <div className="stat-card badge-purple"><p>PIX</p><h3>{pixContributions.length}</h3></div>
             </div>
             
-            {/* Título muda dependendo se está editando ou não */}
-            <h3 className="text-xl font-bold mb-4">
+            <h3 className="text-lg font-bold mb-4">
               {editingId ? `✏️ Editando: ${newGift.name}` : '➕ Adicionar Novo Item'}
             </h3>
             
@@ -540,7 +531,6 @@ export default function WeddingGiftSite() {
                 <span>Permitir múltiplas compras</span>
               </label>
               
-              {/* Botões do Form (Salvar ou Cancelar) */}
               <div style={{gridColumn: '1 / -1', display: 'flex', gap: '1rem'}}>
                 <button onClick={handleSaveGift} disabled={loading} className={`btn ${editingId ? 'btn-primary' : 'btn-success'}`} style={{flex: 1}}>
                   {editingId ? <><Edit size={20} /> Salvar Alterações</> : <><Plus size={20} /> Adicionar Item</>}
@@ -553,34 +543,18 @@ export default function WeddingGiftSite() {
               </div>
             </div>
 
-            <h3 className="text-xl font-bold mb-4">📦 Lista de Itens ({gifts.length})</h3>
+            <h3 className="text-lg font-bold mb-4">📦 Lista de Itens ({gifts.length})</h3>
             <div className="grid grid-cols-3 gap-4">
               {gifts.map(gift => (
                 <div key={gift.id} className="relative p-4 border rounded bg-white" style={editingId === gift.id ? {borderColor: '#ec4899', borderWidth: '2px'} : {}}>
-                  {gift.image && <img src={gift.image} alt={gift.name} style={{width:'100%', height:'8rem', objectFit:'contain'}} />}
-                  <h4 className="font-bold">{gift.name}</h4>
-                  <p className="text-sm text-gray-600">{gift.description}</p>
+                  {gift.image && <img src={gift.image} alt={gift.name} style={{width:'100%', height:'6rem', objectFit:'contain'}} />}
+                  <h4 className="font-bold text-sm">{gift.name}</h4>
+                  <p className="text-xs text-gray-600">{gift.description}</p>
                   {gift.reserved && <p className="text-xs text-green-600 font-bold mt-2">Escolhido por: {gift.reservedBy}</p>}
                   
-                  {/* Botões de Ação do Card */}
-                  <div className="absolute top-2 right-2 flex gap-2">
-                    <button 
-                      onClick={() => handleStartEdit(gift)} 
-                      disabled={loading}
-                      className="icon-btn" 
-                      style={{backgroundColor: '#3b82f6'}}
-                      title="Editar"
-                    >
-                      <Edit size={16} />
-                    </button>
-                    <button 
-                      onClick={() => handleDeleteGift(gift.id)} 
-                      disabled={loading} 
-                      className="icon-btn"
-                      title="Deletar"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    <button onClick={() => handleStartEdit(gift)} disabled={loading} className="icon-btn" style={{backgroundColor: '#3b82f6', width:'1.5rem', height:'1.5rem'}} title="Editar"><Edit size={12} /></button>
+                    <button onClick={() => handleDeleteGift(gift.id)} disabled={loading} className="icon-btn" style={{width:'1.5rem', height:'1.5rem'}} title="Deletar"><Trash2 size={12} /></button>
                   </div>
                 </div>
               ))}
@@ -597,7 +571,7 @@ export default function WeddingGiftSite() {
         <div className="text-center card max-w-md">
           <CheckCircle className="icon-center text-green-500 mb-6" size={96} />
           <h2 className="text-4xl font-bold text-gray-800 mb-4">Obrigado!</h2>
-          <p className="text-gray-600 mb-8">Sua confirmação e presente foram registrados com sucesso. Mal podemos esperar para te ver!</p>
+          <p className="text-gray-600 mb-8">Sua confirmação e presente foram registrados com sucesso.</p>
           <button onClick={() => setCurrentPage('home')} className="btn btn-primary w-auto mx-auto px-8">Voltar ao Início</button>
         </div>
       </div>
