@@ -222,6 +222,9 @@ body {
   border-radius: 0.75rem;
   padding: 1rem;
   transition: all 0.3s;
+  background: white;
+  display: flex;
+  flex-direction: column;
 }
 
 .gift-card:hover {
@@ -245,15 +248,16 @@ body {
   color: #065f46;
 }
 
+/* MELHORIA NAS IMAGENS (Solicitação 1) */
 .gift-card img {
   width: 100%;
-  height: 14rem; 
-  object-fit: contain; 
-  background-color: #ffffff; 
+  height: 200px; /* Altura fixa para padronizar */
+  object-fit: contain; /* Garante que a imagem inteira apareça sem cortar */
+  background-color: #fff; /* Fundo branco caso a imagem seja png transparente */
   padding: 0.5rem; 
   border-radius: 0.5rem; 
-  margin-bottom: 0.75rem; /* Responsivo */
-  border-bottom: 1px solid #f3f4f6; 
+  margin-bottom: 1rem;
+  border: 1px solid #f3f4f6; /* Moldura leve */
 }
 
 .badge {
