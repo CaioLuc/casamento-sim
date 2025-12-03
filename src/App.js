@@ -557,7 +557,7 @@ export default function WeddingGiftSite() {
                   {gift.reserved && <p className="text-xs text-green-600 font-bold mt-2">Escolhido por: {gift.reservedBy}</p>}
                   
                   {/* Botões de Ação do Card */}
-                  <div className="absolute top-2 right-2 flex gap-2">
+                  <div className="absolute top-2 right-2 flex gap-4">
                     <button 
                       onClick={() => handleStartEdit(gift)} 
                       disabled={loading}
