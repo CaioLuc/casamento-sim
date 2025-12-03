@@ -248,16 +248,15 @@ body {
   color: #065f46;
 }
 
-/* MELHORIA NAS IMAGENS (Solicitação 1) */
 .gift-card img {
   width: 100%;
-  height: 200px; /* Altura fixa para padronizar */
-  object-fit: contain; /* Garante que a imagem inteira apareça sem cortar */
-  background-color: #fff; /* Fundo branco caso a imagem seja png transparente */
+  height: 200px;
+  object-fit: contain;
+  background-color: #fff;
   padding: 0.5rem; 
   border-radius: 0.5rem; 
   margin-bottom: 1rem;
-  border: 1px solid #f3f4f6; /* Moldura leve */
+  border: 1px solid #f3f4f6;
 }
 
 .badge {
@@ -320,23 +319,6 @@ body {
   color: #1e40af;
 }
 
-.underline {
-  text-decoration: underline;
-}
-
-.animate-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
 .divider {
   width: 6rem;
   height: 0.25rem;
@@ -356,31 +338,13 @@ body {
   font-family: 'Courier New', monospace;
   font-weight: 700;
   font-size: 1.125rem;
+  word-break: break-all;
 }
 
-.relative {
-  position: relative;
-}
-
-.absolute {
-  position: absolute;
-}
-
-.top-2 {
-  top: 0.5rem;
-}
-
-.right-2 {
-  right: 0.5rem;
-}
-
-.rounded-full {
-  border-radius: 9999px;
-}
-
-.p-2 {
-  padding: 0.5rem;
-}
+.relative { position: relative; }
+.absolute { position: absolute; }
+.top-2 { top: 0.5rem; }
+.right-2 { right: 0.5rem; }
 
 .icon-btn {
   background-color: #ef4444;
@@ -396,9 +360,10 @@ body {
   background-color: #dc2626;
 }
 
-.icon-btn:disabled {
-  background-color: #9ca3af;
-  cursor: not-allowed;
+.label-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .checkbox {
@@ -407,80 +372,22 @@ body {
   cursor: pointer;
 }
 
-.label-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+.welcome-text {
+  font-style: italic;
+  font-size: 1.1rem;
+  color: #4b5563;
+  margin-bottom: 2rem;
+  line-height: 1.6;
 }
 
-.text-sm {
-  font-size: 0.875rem;
-}
 
-.text-xs {
-  font-size: 0.75rem;
-}
-
-.text-xl {
-  font-size: 1.25rem;
-}
-
-.text-2xl {
-  font-size: 1.5rem;
-}
-
-.text-3xl {
-  font-size: 1.875rem;
-}
-
-.text-4xl {
-  font-size: 2.25rem;
-}
-
-.text-5xl {
-  font-size: 3rem;
-}
-
-.w-full {
-  width: 100%;
-}
-
-.max-w-md {
-  max-width: 28rem;
-  margin: 0 auto;
-}
-
-.max-w-2xl {
-  max-width: 42rem;
-  margin: 0 auto;
-}
-
-.max-w-6xl {
-  max-width: 72rem;
-  margin: 0 auto;
-}
-
-.icon-center {
-  display: block;
-  margin: 0 auto;
-}
-
-/* Responsivo */
 @media (max-width: 768px) {
   .grid-cols-3,
   .grid-cols-2 {
     grid-template-columns: 1fr;
   }
   
-  .text-5xl {
-    font-size: 2rem;
-  }
-  
-  .text-4xl {
-    font-size: 1.75rem;
-  }
-  
-  .text-3xl {
-    font-size: 1.5rem;
-  }
+  .text-5xl { font-size: 2rem; }
+  .text-4xl { font-size: 1.75rem; }
+  .text-3xl { font-size: 1.5rem; }
 }
