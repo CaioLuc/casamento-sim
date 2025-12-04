@@ -15,18 +15,6 @@ import './App.css';
 
 const CATEGORIES = ['Todos', 'Cozinha', 'Quarto', 'Sala', 'Banheiro', 'Eletro', 'Decoração', 'Outros'];
 
-// --- ESTILOS DE CATEGORIA ---
-const CATEGORY_STYLES = {
-  'Todos':      { bg: '#f3f4f6', text: '#374151', activeBg: '#374151' },
-  'Cozinha':    { bg: '#ffedd5', text: '#c2410c', activeBg: '#c2410c' },
-  'Quarto':     { bg: '#f3e8ff', text: '#7e22ce', activeBg: '#7e22ce' },
-  'Sala':       { bg: '#dbeafe', text: '#1d4ed8', activeBg: '#1d4ed8' },
-  'Banheiro':   { bg: '#ccfbf1', text: '#0f766e', activeBg: '#0f766e' },
-  'Eletro':     { bg: '#e2e8f0', text: '#475569', activeBg: '#475569' },
-  'Decoração':  { bg: '#fce7f3', text: '#be185d', activeBg: '#be185d' },
-  'Outros':     { bg: '#dcfce7', text: '#15803d', activeBg: '#15803d' }
-};
-
 // --- FUNÇÕES AUXILIARES ---
 const maskPhone = (value) => {
   return value
@@ -71,8 +59,8 @@ export default function WeddingGiftSite() {
   
   const [adminPassword, setAdminPassword] = useState('');
   const [editingId, setEditingId] = useState(null);
-  const [showPixDetails, setShowPixDetails] = useState(false);
-  const [showGuestList, setShowGuestList] = useState(true); // Novo estado para lista de convidados
+  // showPixDetails removido pois unificamos
+  const [showGuestList, setShowGuestList] = useState(true);
   
   const [toast, setToast] = useState(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -118,7 +106,7 @@ export default function WeddingGiftSite() {
       const querySnapshot = await getDocs(collection(db, 'gifts'));
       const giftsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setGifts(giftsData);
-    } catch (error) { console.error('Erro:', error); }
+    } catch (error) { console.error('Erro ao carregar presentes:', error); }
   };
 
   const loadGuests = async () => {
@@ -126,7 +114,7 @@ export default function WeddingGiftSite() {
       const querySnapshot = await getDocs(collection(db, 'guests'));
       const guestsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setGuests(guestsData);
-    } catch (error) { console.error('Erro:', error); }
+    } catch (error) { console.error('Erro ao carregar convidados:', error); }
   };
 
   const loadPixContributions = async () => {
@@ -134,7 +122,7 @@ export default function WeddingGiftSite() {
       const querySnapshot = await getDocs(collection(db, 'pixContributions'));
       const pixData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setPixContributions(pixData);
-    } catch (error) { console.error('Erro:', error); }
+    } catch (error) { console.error('Erro ao carregar Pix:', error); }
   };
 
   const totalPixValue = pixContributions.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
@@ -164,7 +152,7 @@ export default function WeddingGiftSite() {
       setCurrentPage('intro'); 
       await loadGuests();
     } catch (error) {
-      console.error('Erro:', error);
+      console.error('Erro ao salvar convidado:', error);
       showToast('Erro ao salvar. Tente novamente.', 'error');
     } finally {
       setLoading(false);
@@ -237,7 +225,7 @@ export default function WeddingGiftSite() {
       }
       
       if (selectedPix) {
-        await addDoc(collection(db, 'pixContributions'), {
+        const pixDoc = await addDoc(collection(db, 'pixContributions'), {
           guestName: currentGuest.name,
           guestId: currentGuest.id,
           guestPhone: currentGuest.phone,
@@ -245,6 +233,7 @@ export default function WeddingGiftSite() {
           timestamp: serverTimestamp()
         });
         updateData.pixAmount = selectedPix.amount;
+        updateData.pixContributionId = pixDoc.id; // Salvamos o ID do Pix no convidado
       }
 
       const guestRef = doc(db, 'guests', currentGuest.id);
@@ -257,7 +246,7 @@ export default function WeddingGiftSite() {
       setCurrentPage('thanks');
       
     } catch (error) {
-      console.error('Erro:', error);
+      console.error('Erro ao confirmar:', error);
       showToast('Erro ao confirmar: ' + error.message, 'error');
     } finally {
       setLoading(false);
@@ -277,6 +266,7 @@ export default function WeddingGiftSite() {
       await loadGuests();
       showToast('Mensagem enviada com sucesso!', 'success');
     } catch (error) {
+      console.error('Erro ao enviar mensagem:', error);
       showToast('Erro ao enviar mensagem.', 'error');
     } finally {
       setLoading(false);
@@ -296,19 +286,9 @@ export default function WeddingGiftSite() {
         setCurrentPage('admin');
         setAdminPassword('');
       }
-    } catch (error) { showToast('Erro de conexão.', 'error'); } finally { setLoading(false); }
-  };
-
-  // Excluir PIX e atualizar listas
-  const handleDeletePix = async (pixId) => {
-    if (!window.confirm('Tem certeza que deseja excluir este registro de PIX?')) return;
-    setLoading(true);
-    try {
-      await deleteDoc(doc(db, 'pixContributions', pixId));
-      await loadPixContributions();
-      showToast('Pix excluído com sucesso.', 'success');
-    } catch (error) {
-      showToast('Erro ao excluir Pix.', 'error');
+    } catch (error) { 
+      console.error(error);
+      showToast('Erro de conexão.', 'error'); 
     } finally { setLoading(false); }
   };
 
@@ -322,17 +302,18 @@ export default function WeddingGiftSite() {
       await loadGuests();
       showToast('Mensagem apagada.', 'success');
     } catch (error) {
+      console.error('Erro ao apagar mensagem:', error);
       showToast('Erro ao apagar mensagem.', 'error');
     } finally { setLoading(false); }
   };
 
-  // Excluir Convidado e Liberar Presente
+  // SUPER DELEÇÃO: Apaga convidado + Libera Presente + Apaga registro do PIX
   const handleDeleteGuest = async (guest) => {
-    if (!window.confirm(`ATENÇÃO: Isso removerá ${guest.name} da lista. Se ele escolheu um presente, o presente ficará disponível novamente. Confirmar?`)) return;
+    if (!window.confirm(`ATENÇÃO: Você vai excluir ${guest.name}.\n\nIsso vai:\n1. Liberar o presente (se houver)\n2. Apagar o PIX do sistema (se houver)\n3. Remover o convidado da lista.\n\nConfirmar?`)) return;
     
     setLoading(true);
     try {
-      // 1. Se tiver presente, libera
+      // 1. Liberar Presente
       if (guest.giftId) {
         const giftDoc = await getDoc(doc(db, 'gifts', guest.giftId));
         if (giftDoc.exists()) {
@@ -340,22 +321,34 @@ export default function WeddingGiftSite() {
           const newCount = Math.max(0, (giftData.purchaseCount || 1) - 1);
           await updateDoc(doc(db, 'gifts', guest.giftId), {
             purchaseCount: newCount,
-            reserved: false, // Reabre o presente se estava fechado
-            // Se for o único comprador, limpa o nome
+            reserved: false, 
             reservedBy: giftData.reservedById === guest.id ? null : giftData.reservedBy,
             reservedById: giftData.reservedById === guest.id ? null : giftData.reservedById
           });
         }
       }
 
-      // 2. Deleta o convidado
+      // 2. Apagar Registro do PIX (se existir vínculo)
+      if (guest.pixContributionId) {
+        try {
+           await deleteDoc(doc(db, 'pixContributions', guest.pixContributionId));
+           console.log("Pix apagado com sucesso.");
+        } catch (err) {
+           console.error("Erro ao apagar Pix vinculado (pode já ter sido apagado):", err);
+        }
+      }
+
+      // 3. Deleta o convidado
       await deleteDoc(doc(db, 'guests', guest.id));
       
+      // Recarrega tudo
       await loadGuests();
       await loadGifts();
-      showToast('Convidado removido e presente liberado.', 'success');
+      await loadPixContributions();
+
+      showToast('Registro completo removido com sucesso.', 'success');
     } catch (error) {
-      console.error(error);
+      console.error('Erro ao remover convidado:', error);
       showToast('Erro ao remover convidado.', 'error');
     } finally { setLoading(false); }
   };
@@ -401,7 +394,7 @@ export default function WeddingGiftSite() {
       }
       await loadGifts();
       handleCancelEdit();
-    } catch (error) { showToast('Erro ao salvar item.', 'error'); } finally { setLoading(false); }
+    } catch (error) { console.error(error); showToast('Erro ao salvar item.', 'error'); } finally { setLoading(false); }
   };
 
   const handleDeleteGift = async (giftId) => {
@@ -647,6 +640,7 @@ export default function WeddingGiftSite() {
     return (
       <div className="min-h-screen bg-gradient-gray flex items-center justify-center px-4">
         <ToastNotification />
+        {/* CADEADO CENTRALIZADO COM FLEX */}
         <div className="card flex flex-col items-center" style={{maxWidth: '24rem'}}>
           <div className="flex justify-center w-full mb-6">
              <Lock className="text-gray-700" size={48} />
@@ -673,7 +667,6 @@ export default function WeddingGiftSite() {
               <button onClick={() => { setIsAdmin(false); setCurrentPage('home'); }} className="btn-text btn-text-red" style={{width:'auto'}}>Sair</button>
             </div>
             
-            {/* CARD DE STATS */}
             <div className="grid grid-cols-3 gap-4 mb-8">
               <div className="stat-card badge-blue" style={{cursor: 'pointer'}} onClick={() => setShowGuestList(!showGuestList)}>
                 <p>Pessoas</p>
@@ -681,17 +674,13 @@ export default function WeddingGiftSite() {
                 <span style={{fontSize:'0.7rem'}}>{showGuestList ? '▲' : '▼'}</span>
               </div>
               <div className="stat-card badge-green"><p>Esgotados</p><h3>{gifts.filter(g => g.reserved).length}</h3></div>
-              <div className="stat-card badge-purple" style={{cursor: 'pointer'}} onClick={() => setShowPixDetails(!showPixDetails)}>
-                <p>PIX</p>
-                <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '0.5rem'}}>
-                  <h3>{pixContributions.length}</h3>
-                  <span style={{fontSize: '0.9rem', opacity: 0.8}}>({formatCurrency(totalPixValue)})</span>
-                  <span style={{fontSize:'0.7rem'}}>{showPixDetails ? '▲' : '▼'}</span>
-                </div>
+              <div className="stat-card badge-purple">
+                <p>Total PIX</p>
+                <h3 style={{fontSize:'1.5rem'}}>{formatCurrency(totalPixValue)}</h3>
               </div>
             </div>
 
-            {/* --- GERENCIAMENTO DE CONVIDADOS (NOVA SEÇÃO) --- */}
+            {/* --- GERENCIAMENTO DE CONVIDADOS (TABELA UNIFICADA) --- */}
             {showGuestList && (
               <div className="mb-8 p-4 bg-blue-50 rounded-lg border border-blue-100">
                 <h3 className="text-lg font-bold text-blue-800 mb-4">Gerenciamento de Convidados</h3>
@@ -712,13 +701,17 @@ export default function WeddingGiftSite() {
                             <span className="text-gray-500 text-xs">{guest.phone}</span>
                           </td>
                           <td className="p-2">
-                            {guest.giftName ? (
-                              <span className="text-green-700 text-xs bg-green-100 px-2 py-1 rounded">🎁 {guest.giftName}</span>
-                            ) : guest.pixAmount ? (
-                              <span className="text-purple-700 text-xs bg-purple-100 px-2 py-1 rounded">💰 PIX: {formatCurrency(guest.pixAmount)}</span>
-                            ) : (
-                              <span className="text-gray-400 text-xs">Apenas confirmou</span>
-                            )}
+                            <div className="flex flex-col gap-1">
+                               {guest.giftName && (
+                                  <span className="text-green-700 text-xs bg-green-100 px-2 py-1 rounded inline-block">🎁 {guest.giftName}</span>
+                               )}
+                               {guest.pixAmount && (
+                                  <span className="text-purple-700 text-xs bg-purple-100 px-2 py-1 rounded inline-block">💰 PIX: {formatCurrency(guest.pixAmount)}</span>
+                               )}
+                               {!guest.giftName && !guest.pixAmount && (
+                                  <span className="text-gray-400 text-xs">Apenas confirmou</span>
+                               )}
+                            </div>
                           </td>
                           <td className="p-2 text-center">
                             <div className="flex justify-center gap-2">
@@ -727,44 +720,10 @@ export default function WeddingGiftSite() {
                                   <FileText size={14} />
                                 </button>
                               )}
-                              <button onClick={() => handleDeleteGuest(guest)} className="icon-btn" style={{width:'28px', height:'28px', background:'#ef4444'}} title="Excluir Convidado">
-                                <UserX size={14} />
+                              <button onClick={() => handleDeleteGuest(guest)} className="icon-btn" style={{width:'28px', height:'28px', background:'#ef4444'}} title="Excluir TUDO">
+                                <Trash2 size={14} />
                               </button>
                             </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* EXTRATO PIX */}
-            {showPixDetails && (
-              <div className="mb-8 p-4 bg-purple-50 rounded-lg border border-purple-100">
-                <h3 className="text-lg font-bold text-purple-800 mb-4">Extrato Financeiro (PIX)</h3>
-                <div className="overflow-x-auto max-h-60 overflow-y-auto">
-                  <table style={{width: '100%', borderCollapse: 'collapse'}}>
-                    <thead>
-                      <tr style={{textAlign: 'left', borderBottom: '1px solid #d8b4fe'}}>
-                        <th className="p-2">Nome</th>
-                        <th className="p-2">Valor</th>
-                        <th className="p-2 text-right">Excluir</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pixContributions.map(pix => (
-                        <tr key={pix.id} style={{borderBottom: '1px solid #f3e8ff'}}>
-                          <td className="p-2">
-                            {pix.guestName}<br/>
-                            <span className="text-xs text-gray-500">{pix.guestPhone}</span>
-                          </td>
-                          <td className="p-2 font-bold text-green-700">{formatCurrency(pix.amount)}</td>
-                          <td className="p-2 text-right">
-                             <button onClick={() => handleDeletePix(pix.id)} style={{background:'none', border:'none', cursor:'pointer', color:'#ef4444'}} title="Excluir Registro">
-                               <Trash2 size={16} />
-                             </button>
                           </td>
                         </tr>
                       ))}
@@ -777,7 +736,7 @@ export default function WeddingGiftSite() {
             {/* MURAL DE RECADOS */}
             <div className="mb-8 p-4 bg-pink-50 rounded-lg border border-pink-100">
               <h3 className="text-lg font-bold text-pink-700 mb-4 flex items-center">
-                <MessageCircle size={20} className="mr-2" /> Mural de Recados ({guests.filter(g => g.message).length})
+                <MessageCircle size={20} className="mr-2" /> Recados ({guests.filter(g => g.message).length})
               </h3>
               <div className="space-y-3 max-h-60 overflow-y-auto">
                 {guests.filter(g => g.message).length === 0 ? <p className="text-sm text-gray-500 italic">Nenhuma mensagem.</p> : 
