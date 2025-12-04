@@ -305,3 +305,11 @@ body {
   .text-3xl { font-size: 1.5rem; }
   .card { padding: 1.5rem; }
 }
+
+.category-filters::-webkit-scrollbar {
+  height: 4px;
+}
+.category-filters::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
