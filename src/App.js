@@ -73,9 +73,7 @@ export default function WeddingGiftSite() {
   const [editingId, setEditingId] = useState(null);
   const [showPixDetails, setShowPixDetails] = useState(false);
   
-  // Estado para o Toast (Notificação)
   const [toast, setToast] = useState(null);
-  // Estado para o Botão de Voltar ao Topo
   const [showScrollTop, setShowScrollTop] = useState(false);
   
   const [newGift, setNewGift] = useState({
@@ -105,7 +103,6 @@ export default function WeddingGiftSite() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Função de Toast
   const showToast = (message, type = 'info') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
@@ -380,7 +377,7 @@ export default function WeddingGiftSite() {
           <div className="max-w-2xl mx-auto text-center mb-8">
             <Heart className="icon-center text-pink-500 mb-4 animate-pulse" size={64} />
             <h1 className="text-5xl font-bold text-gray-800 mb-2">Caio & Evelyn</h1>
-            <p className="text-xl text-gray-600 mb-6">Chá de Casa Nova</p>
+            <p className="text-xl text-gray-600 mb-6">Chá de Casa Nova / Enxoval</p>
             <div className="divider mb-8"></div>
             <p className="welcome-text">
               "Sua presença e carinho são os melhores presentes."
@@ -388,8 +385,10 @@ export default function WeddingGiftSite() {
           </div>
 
           <div className="card mx-auto">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-6 text-center">Identifique-se</h2>
-            <div className="space-y-5">
+            <h2 className="text-2xl font-semibold text-gray-800 mb-8 text-center">Identifique-se</h2>
+            
+            {/* AUMENTADO O ESPAÇAMENTO AQUI (space-y-6) */}
+            <div className="space-y-6">
               <div>
                 <label className="text-gray-700 font-medium mb-2" style={{display: 'block'}}>Nome Completo *</label>
                 <input type="text" value={guestName} onChange={(e) => setGuestName(e.target.value)} className="input" placeholder="Seu nome" disabled={loading} />
@@ -400,7 +399,9 @@ export default function WeddingGiftSite() {
               </div>
               <button onClick={handleGuestIdentification} disabled={loading} className="btn btn-primary">{loading ? 'Aguarde...' : 'Entrar'}</button>
             </div>
-            <button onClick={() => setCurrentPage('adminLogin')} className="btn-text btn-text-gray w-full mt-4">
+
+            {/* AUMENTADO O ESPAÇAMENTO AQUI (mt-8) */}
+            <button onClick={() => setCurrentPage('adminLogin')} className="btn-text btn-text-gray w-full mt-8">
               <Lock size={16} /> Área do Administrador
             </button>
           </div>
@@ -588,12 +589,13 @@ export default function WeddingGiftSite() {
     return (
       <div className="min-h-screen bg-gradient-gray flex items-center justify-center px-4">
         <ToastNotification />
-        <div className="card" style={{maxWidth: '24rem'}}>
-          <Lock className="icon-center text-gray-700 mb-4" size={48} />
+        {/* CENTRALIZAÇÃO DO CADEADO */}
+        <div className="card flex flex-col items-center" style={{maxWidth: '24rem'}}>
+          <Lock className="icon-center text-gray-700 mb-6" size={48} />
           <h2 className="text-xl font-bold text-center mb-6">Área Admin</h2>
-          <div className="space-y-4">
+          <div className="space-y-4 w-full">
             <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="input" placeholder="Senha" />
-            <button onClick={handleAdminLogin} className="btn btn-secondary">{loading ? '...' : 'Entrar'}</button>
+            <button onClick={handleAdminLogin} className="btn btn-secondary w-full">{loading ? '...' : 'Entrar'}</button>
           </div>
           <button onClick={() => setCurrentPage('home')} className="btn-text btn-text-gray w-full mt-4">Voltar</button>
         </div>
@@ -731,6 +733,11 @@ export default function WeddingGiftSite() {
   if (currentPage === 'thanks') {
     return (
       <div className="min-h-screen bg-gradient flex items-center justify-center px-4 overflow-hidden">
+        <div className="confetti-container">
+          <div className="confetti"></div><div className="confetti"></div><div className="confetti"></div><div className="confetti"></div><div className="confetti"></div>
+          <div className="confetti"></div><div className="confetti"></div><div className="confetti"></div><div className="confetti"></div><div className="confetti"></div>
+        </div>
+
         <div className="text-center card z-10 relative">
           <CheckCircle className="icon-center text-green-500 mb-6" size={96} />
           <h2 className="text-4xl font-bold text-gray-800 mb-4">Obrigado!</h2>
