@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Gift, DollarSign, Lock, Trash2, Plus, ExternalLink, AlertCircle, CheckCircle, Send, Info, Edit, X, MessageCircle, Filter } from 'lucide-react';
+import { Heart, Gift, DollarSign, Lock, Trash2, Plus, ExternalLink, AlertCircle, CheckCircle, Send, Info, Edit, X } from 'lucide-react';
 import { db } from './firebase';
 import { 
   collection, 
@@ -11,12 +11,7 @@ import {
   serverTimestamp,
   getDoc
 } from 'firebase/firestore';
-import Confetti from 'react-confetti';
-import InputMask from 'react-input-mask';
-import CurrencyInput from 'react-currency-input-field';
 import './App.css';
-
-const CATEGORIES = ['Todos', 'Cozinha', 'Quarto', 'Sala', 'Banheiro', 'Eletro', 'Decoração', 'Outros'];
 
 export default function WeddingGiftSite() {
   const [currentPage, setCurrentPage] = useState('home'); 
@@ -31,42 +26,28 @@ export default function WeddingGiftSite() {
   const [guests, setGuests] = useState([]);
   const [pixContributions, setPixContributions] = useState([]);
   
-  // Filtros e Seleções
-  const [categoryFilter, setCategoryFilter] = useState('Todos');
   const [pixAmount, setPixAmount] = useState('');
   const [selectedGift, setSelectedGift] = useState(null);
   const [selectedPix, setSelectedPix] = useState(null);
   
-  // Mensagens
-  const [guestMessage, setGuestMessage] = useState('');
-  const [messageSent, setMessageSent] = useState(false);
-  
-  // Admin
+  // ESTADOS PARA O ADMIN E EDIÇÃO
   const [adminPassword, setAdminPassword] = useState('');
   const [adminError, setAdminError] = useState('');
   const [editingId, setEditingId] = useState(null);
+  
   const [newGift, setNewGift] = useState({
     name: '',
     description: '',
     image: '',
     link: '',
-    category: 'Outros', // Categoria padrão
     allowMultiple: false,
-    maxQuantity: 1
+    maxQuantity: 1 // Novo campo: Limite de compras
   });
-
-  // Tamanho da janela para o Confete
-  const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
 
   useEffect(() => {
     loadGifts();
     loadGuests();
     loadPixContributions();
-
-    // Monitorar redimensionamento para o confete
-    const handleResize = () => setWindowSize({ width: window.innerWidth, height: window.innerHeight });
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const loadGifts = async () => {
@@ -96,18 +77,15 @@ export default function WeddingGiftSite() {
   // --- AÇÕES DO USUÁRIO ---
 
   const handleGuestIdentification = async () => {
-    // Validação simples do telefone (verifica se tem números suficientes)
-    const cleanPhone = guestPhone.replace(/\D/g, '');
-    if (!guestName || cleanPhone.length < 10) {
-      alert('Por favor, preencha seu nome e um telefone válido.');
+    if (!guestName || !guestPhone) {
+      alert('Por favor, preencha seu nome e telefone.');
       return;
     }
-    
     setLoading(true);
     try {
       const guest = {
         name: guestName,
-        phone: guestPhone, // Salva formatado
+        phone: guestPhone,
         timestamp: serverTimestamp()
       };
       const docRef = await addDoc(collection(db, 'guests'), guest);
@@ -123,6 +101,7 @@ export default function WeddingGiftSite() {
   };
 
   const handleSelectGift = async (gift) => {
+    // Verifica se está reservado (Esgotado)
     if (gift.reserved) {
       alert('Este presente já foi totalmente comprado/reservado.');
       return;
@@ -132,41 +111,38 @@ export default function WeddingGiftSite() {
   };
 
   const handleSelectPix = () => {
-    if (!pixAmount) {
+    if (!pixAmount || parseFloat(pixAmount) <= 0) {
       alert('Por favor, insira um valor válido');
       return;
     }
-    
-    // Converte string "R$ 100,00" para number 100.00
-    const numericValue = parseFloat(pixAmount.replace('R$', '').replace('.', '').replace(',', '.'));
-    
-    if (isNaN(numericValue) || numericValue <= 0) {
-      alert('Valor inválido');
-      return;
-    }
-
-    setSelectedPix({ amount: numericValue });
+    setSelectedPix({ amount: parseFloat(pixAmount) });
     setPixAmount(''); 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handlePixPreset = (value) => {
-    // Formata para exibição no input controlado
-    // (Nota: O componente CurrencyInput lida com formatação, mas aqui simplificamos)
-    setSelectedPix({ amount: value });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setPixAmount(value.toString());
   };
 
-  const handleRemoveGiftSelection = () => setSelectedGift(null);
-  const handleRemovePixSelection = () => setSelectedPix(null);
+  const handleRemoveGiftSelection = () => {
+    setSelectedGift(null);
+  };
+
+  const handleRemovePixSelection = () => {
+    setSelectedPix(null);
+  };
 
   const handleFinalConfirmation = async () => {
     if (!selectedGift && !selectedPix) {
-      alert('⚠️ Por favor selecione um presente ou uma contribuição PIX.');
+      alert('Por favor selecione um presente ou uma contribuição PIX.');
       return;
     }
 
-    if (!window.confirm('Deseja confirmar sua participação?')) return;
+    let confirmMsg = 'Deseja confirmar sua participação?\n\nItens selecionados:';
+    if (selectedGift) confirmMsg += `\nPresente: ${selectedGift.name}`;
+    if (selectedPix) confirmMsg += `\nPIX: R$ ${selectedPix.amount.toFixed(2)}`;
+
+    if (!window.confirm(confirmMsg)) return;
 
     setLoading(true);
     try {
@@ -174,18 +150,24 @@ export default function WeddingGiftSite() {
 
       if (selectedGift) {
         const giftRef = doc(db, 'gifts', selectedGift.id);
+        
+        // Lógica de Contagem e Limite
         const currentCount = selectedGift.purchaseCount || 0;
         const newCount = currentCount + 1;
+        // Se não tiver maxQuantity definido (items antigos), assume 1
         const limit = selectedGift.maxQuantity || 1; 
+        
+        // Se atingiu o limite, marca como reservado (esgotado)
         const isFullyReserved = newCount >= limit;
 
         await updateDoc(giftRef, {
           purchaseCount: newCount,
-          reserved: isFullyReserved,
-          reservedBy: currentGuest.name,
+          reserved: isFullyReserved, // True se encheu, False se ainda cabe mais
+          reservedBy: currentGuest.name, // Guarda o nome do último comprador
           reservedById: currentGuest.id,
           reservedAt: serverTimestamp()
         });
+
         updateData.giftId = selectedGift.id;
         updateData.giftName = selectedGift.name;
       }
@@ -211,35 +193,24 @@ export default function WeddingGiftSite() {
       
       setCurrentPage('thanks');
       
+      setTimeout(() => {
+        setCurrentGuest(null);
+        setSelectedGift(null);
+        setSelectedPix(null);
+        setGuestName('');
+        setGuestPhone('');
+        setPixAmount('');
+      }, 100);
+      
     } catch (error) {
       console.error('Erro:', error);
-      alert('❌ Erro ao confirmar: ' + error.message);
+      alert('Erro ao confirmar: ' + error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Salvar mensagem do mural
-  const handleSendMessage = async () => {
-    if (!guestMessage.trim()) return;
-    setLoading(true);
-    try {
-      const guestRef = doc(db, 'guests', currentGuest.id);
-      await updateDoc(guestRef, {
-        message: guestMessage,
-        messageAt: serverTimestamp()
-      });
-      setMessageSent(true);
-      await loadGuests();
-    } catch (error) {
-      console.error('Erro ao enviar mensagem:', error);
-      alert('Erro ao enviar mensagem.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // --- AÇÕES DO ADMIN ---
+  // --- AÇÕES DO ADMIN (ADD, EDIT, DELETE) ---
 
   const handleAdminLogin = async () => {
     setAdminError('');
@@ -262,9 +233,8 @@ export default function WeddingGiftSite() {
       description: gift.description,
       image: gift.image || '',
       link: gift.link || '',
-      category: gift.category || 'Outros',
       allowMultiple: gift.allowMultiple || false,
-      maxQuantity: gift.maxQuantity || 1
+      maxQuantity: gift.maxQuantity || 1 // Carrega o limite existente ou 1
     });
     setEditingId(gift.id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -272,41 +242,58 @@ export default function WeddingGiftSite() {
 
   const handleCancelEdit = () => {
     setEditingId(null);
-    setNewGift({ name: '', description: '', image: '', link: '', category: 'Outros', allowMultiple: false, maxQuantity: 1 });
+    setNewGift({ name: '', description: '', image: '', link: '', allowMultiple: false, maxQuantity: 1 });
   };
 
   const handleSaveGift = async () => {
     if (!newGift.name || !newGift.description) { alert('Preencha nome e descrição'); return; }
+    
     setLoading(true);
     try {
+      // Se não for múltiplo, força a quantidade para 1
       const finalMaxQuantity = newGift.allowMultiple ? parseInt(newGift.maxQuantity) : 1;
-      const giftData = { ...newGift, maxQuantity: finalMaxQuantity, updatedAt: serverTimestamp() };
+
+      const giftData = {
+        ...newGift,
+        maxQuantity: finalMaxQuantity,
+        updatedAt: serverTimestamp()
+      };
 
       if (editingId) {
-        await updateDoc(doc(db, 'gifts', editingId), giftData);
-        alert('✅ Item atualizado!');
+        // EDIÇÃO
+        const giftRef = doc(db, 'gifts', editingId);
+        await updateDoc(giftRef, giftData);
+        alert('Item atualizado!');
       } else {
+        // CRIAÇÃO
         await addDoc(collection(db, 'gifts'), { 
           ...giftData, 
           reserved: false, 
-          purchaseCount: 0, 
+          purchaseCount: 0, // Inicia com 0 compras
           reservedBy: null, 
           createdAt: serverTimestamp() 
         });
-        alert('✅ Item adicionado!');
+        alert('Item adicionado!');
       }
+
       await loadGifts();
       handleCancelEdit();
-    } catch (error) { console.error(error); alert('Erro ao salvar item.'); } finally { setLoading(false); }
+    } catch (error) { 
+      console.error(error);
+      alert('Erro ao salvar item.'); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   const handleDeleteGift = async (giftId) => {
-    if (!window.confirm('Tem certeza?')) return;
+    if (!window.confirm('Tem certeza que deseja remover este item?')) return;
     setLoading(true);
     try {
       await deleteDoc(doc(db, 'gifts', giftId));
       await loadGifts();
       if (editingId === giftId) handleCancelEdit();
+      alert('✅ Removido!');
     } catch (error) { alert('Erro ao remover.'); } finally { setLoading(false); }
   };
 
@@ -336,15 +323,7 @@ export default function WeddingGiftSite() {
               </div>
               <div>
                 <label className="text-gray-700 font-medium mb-2" style={{display: 'block'}}>Telefone *</label>
-                {/* INPUT MASK PARA TELEFONE */}
-                <InputMask 
-                  mask="(99) 99999-9999" 
-                  value={guestPhone} 
-                  onChange={(e) => setGuestPhone(e.target.value)}
-                  className="input"
-                  placeholder="(00) 99999-9999"
-                  disabled={loading}
-                />
+                <input type="tel" value={guestPhone} onChange={(e) => setGuestPhone(e.target.value)} className="input" placeholder="(00) 00000-0000" disabled={loading} />
               </div>
               <button onClick={handleGuestIdentification} disabled={loading} className="btn btn-primary">{loading ? 'Aguarde...' : 'Entrar'}</button>
             </div>
@@ -371,7 +350,9 @@ export default function WeddingGiftSite() {
               <li>E/ou um <strong>item da nossa lista</strong> de sugestões.</li>
             </ol>
             <div className="bg-blue-50 p-4 rounded-lg mt-4 border border-blue-100">
-              <p className="text-sm text-blue-800"><strong>Nota:</strong> Você pode selecionar as duas opções se desejar! ❤️</p>
+              <p className="text-sm text-blue-800">
+                <strong>Nota:</strong> Você pode selecionar as duas opções se desejar! 
+              </p>
             </div>
           </div>
           <button onClick={() => { setCurrentPage('gifts'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="btn btn-primary">
@@ -384,10 +365,6 @@ export default function WeddingGiftSite() {
 
   if (currentPage === 'gifts' && currentGuest) {
     const hasSelection = selectedGift || selectedPix;
-    // Filtra presentes pela categoria
-    const filteredGifts = categoryFilter === 'Todos' 
-      ? gifts 
-      : gifts.filter(g => g.category === categoryFilter);
     
     return (
       <div className="min-h-screen bg-gradient py-8 px-4">
@@ -397,41 +374,50 @@ export default function WeddingGiftSite() {
             <p className="text-gray-600">Escolha como prefere nos presentear</p>
           </div>
 
-          {/* --- RESUMO DA ESCOLHA --- */}
           {hasSelection && (
             <div className="card mb-8" style={{backgroundColor: '#ecfdf5', borderLeft: '4px solid #10b981'}}>
               <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
                 <CheckCircle size={24} style={{color: '#10b981', marginRight: '0.5rem'}} />
-                Itens Selecionados
+                Resumo da Escolha
               </h3>
+              
               <div style={{backgroundColor: 'white', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1rem'}}>
                 {selectedGift && (
-                  <div className="mb-4 pb-4 border-b border-gray-100 flex justify-between items-start">
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">🎁 Presente:</p>
-                      <p className="font-bold text-lg">{selectedGift.name}</p>
-                      {selectedGift.link && <a href={selectedGift.link} target="_blank" rel="noopener noreferrer" className="link"><ExternalLink size={16} style={{marginRight: '0.25rem'}} /> Ver sugestão</a>}
+                  <div className="mb-4 pb-4 border-b border-gray-100">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Presente:</p>
+                        <p className="font-bold text-lg">{selectedGift.name}</p>
+                        {selectedGift.link && (
+                          <a href={selectedGift.link} target="_blank" rel="noopener noreferrer" className="link">
+                            <ExternalLink size={16} style={{marginRight: '0.25rem'}} /> Ver sugestão
+                          </a>
+                        )}
+                      </div>
+                      <button onClick={handleRemoveGiftSelection} className="btn-text btn-text-red" style={{fontSize: '0.8rem'}}>Remover</button>
                     </div>
-                    <button onClick={handleRemoveGiftSelection} className="btn-text btn-text-red" style={{fontSize: '0.8rem'}}>Remover</button>
                   </div>
                 )}
+                
                 {selectedPix && (
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">💰 Contribuição PIX:</p>
-                      <p className="font-bold text-2xl text-green-600">R$ {selectedPix.amount.toFixed(2)}</p>
+                  <div>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Contribuição PIX:</p>
+                        <p className="font-bold text-2xl text-green-600">R$ {selectedPix.amount.toFixed(2)}</p>
+                      </div>
+                      <button onClick={handleRemovePixSelection} className="btn-text btn-text-red" style={{fontSize: '0.8rem'}}>Remover</button>
                     </div>
-                    <button onClick={handleRemovePixSelection} className="btn-text btn-text-red" style={{fontSize: '0.8rem'}}>Remover</button>
                   </div>
                 )}
               </div>
+
               <button onClick={handleFinalConfirmation} disabled={loading} className="btn btn-success" style={{fontSize: '1.125rem', padding: '1rem'}}>
                 <Send size={24} /> {loading ? 'Enviando...' : 'Confirmar e Enviar'}
               </button>
             </div>
           )}
 
-          {/* --- OPÇÃO 1: PIX --- */}
           <div className="card mb-8">
             <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
               <DollarSign className="text-green-600" size={28} style={{marginRight: '0.5rem'}} />
@@ -445,18 +431,28 @@ export default function WeddingGiftSite() {
 
               {!selectedPix ? (
                 <>
-                  {/* INPUT MASK PARA MOEDA (PIX) */}
-                  <CurrencyInput
+                  <input
+                    type="number" step="0.01" min="0.01"
+                    value={pixAmount}
+                    onChange={(e) => setPixAmount(e.target.value)}
                     placeholder="Digite o valor (R$)"
-                    prefix="R$ "
-                    decimalsLimit={2}
-                    onValueChange={(value) => setPixAmount(value)}
                     className="input mb-4"
                   />
-                  
                   <div style={{display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', justifyContent: 'center', flexWrap: 'wrap'}}>
                     {[50, 100, 150, 200].map(val => (
-                      <button key={val} onClick={() => handlePixPreset(val)} className="btn" style={{width: 'auto', padding: '0.5rem 1rem', backgroundColor: '#f3f4f6', color: '#4b5563', border: '1px solid #d1d5db', fontSize: '0.9rem'}}>
+                      <button
+                        key={val}
+                        onClick={() => handlePixPreset(val)}
+                        className="btn"
+                        style={{
+                          width: 'auto', 
+                          padding: '0.5rem 1rem',
+                          backgroundColor: pixAmount === val.toString() ? '#ec4899' : '#f3f4f6',
+                          color: pixAmount === val.toString() ? 'white' : '#4b5563',
+                          border: '1px solid #d1d5db',
+                          fontSize: '0.9rem'
+                        }}
+                      >
                         R$ {val}
                       </button>
                     ))}
@@ -467,58 +463,39 @@ export default function WeddingGiftSite() {
                 </>
               ) : (
                 <div className="text-center p-4 bg-green-50 rounded text-green-800">
-                  <CheckCircle className="icon-center mb-2" /> Valor de R$ {selectedPix.amount.toFixed(2)} adicionado!
+                  <CheckCircle className="icon-center mb-2" />
+                  Valor de R$ {selectedPix.amount.toFixed(2)} adicionado!
                 </div>
               )}
             </div>
           </div>
 
-          {/* --- OPÇÃO 2: PRESENTES COM FILTRO --- */}
           <div className="card mb-8">
             <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
               <Gift className="text-pink-500" size={28} style={{marginRight: '0.5rem'}} />
               Opção 2: Lista de Presentes
             </h3>
-            
-            {/* Filtros de Categoria */}
-            <div className="category-filters" style={{display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '1rem', marginBottom: '1rem'}}>
-              {CATEGORIES.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setCategoryFilter(cat)}
-                  className={`badge ${categoryFilter === cat ? 'badge-blue' : 'badge-gray'}`}
-                  style={{cursor: 'pointer', border: 'none', padding: '0.5rem 1rem', fontSize: '0.85rem', whiteSpace: 'nowrap'}}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-
             <p className="text-gray-600 mb-6 text-sm bg-gray-50 p-3 rounded border border-gray-200">
               ℹ️ <strong>Nota:</strong> Os links são sugestões de modelo. Compre onde preferir!
             </p>
             
-            {filteredGifts.length === 0 ? (
-              <p className="text-center text-gray-600 py-8">Nenhum item nesta categoria.</p>
+            {gifts.length === 0 ? (
+              <p className="text-center text-gray-600 py-8">Nenhum presente disponível no momento</p>
             ) : (
               <div className="grid grid-cols-2 gap-4">
-                {filteredGifts.map(gift => {
-                  const count = gift.purchaseCount || 0;
-                  const max = gift.maxQuantity || 1;
-                  const isSoldOut = gift.reserved;
-
-                  return (
+                {gifts.map(gift => {
+                   // Cálculo simples de disponibilidade
+                   const count = gift.purchaseCount || 0;
+                   const max = gift.maxQuantity || 1;
+                   const isSoldOut = gift.reserved; // Agora reserved significa esgotado
+                   
+                   return (
                     <div key={gift.id} className={`gift-card ${isSoldOut ? 'reserved' : ''} ${selectedGift?.id === gift.id ? 'selected-card' : ''}`} style={selectedGift?.id === gift.id ? {borderColor: '#10b981', borderWidth: '2px'} : {}}>
                       {gift.image && <img src={gift.image} alt={gift.name} />}
-                      
-                      {/* Tag da Categoria no Card */}
-                      <div style={{position: 'absolute', top: '0.5rem', left: '0.5rem'}}>
-                        <span className="badge badge-gray" style={{fontSize: '0.65rem'}}>{gift.category || 'Outros'}</span>
-                      </div>
-
                       <h4 className="font-bold text-md mb-1 leading-tight">{gift.name}</h4>
                       <p className="text-xs text-gray-600 mb-3">{gift.description}</p>
                       
+                      {/* Mostrador de Quantidade se for Múltiplo */}
                       {gift.allowMultiple && (
                         <p className="text-xs text-blue-600 font-semibold mb-2 bg-blue-50 p-1 rounded">
                           {count} de {max} comprados
@@ -535,7 +512,11 @@ export default function WeddingGiftSite() {
                             <Gift size={16} /> Selecionar
                           </button>
                         )}
-                        {gift.link && <a href={gift.link} target="_blank" rel="noopener noreferrer" className="link block text-center text-xs"><ExternalLink size={12} /> Ver modelo</a>}
+                        {gift.link && (
+                          <a href={gift.link} target="_blank" rel="noopener noreferrer" className="link block text-center text-xs">
+                            <ExternalLink size={12} /> Ver modelo
+                          </a>
+                        )}
                       </div>
                     </div>
                   );
@@ -559,7 +540,9 @@ export default function WeddingGiftSite() {
             <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="input" placeholder="Senha" />
             <button onClick={handleAdminLogin} className="btn btn-secondary">{loading ? '...' : 'Entrar'}</button>
           </div>
-          <button onClick={() => setCurrentPage('home')} className="btn-text btn-text-gray w-full mt-4">Voltar</button>
+          <button onClick={() => setCurrentPage('home')} className="btn-text btn-text-gray w-full mt-4">
+            Voltar
+          </button>
         </div>
       </div>
     );
@@ -572,34 +555,19 @@ export default function WeddingGiftSite() {
           <div className="card mb-8">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-gray-800">Painel Administrativo</h2>
-              <button onClick={() => { setIsAdmin(false); setCurrentPage('home'); }} className="btn-text btn-text-red">Sair</button>
+              <button onClick={() => { setIsAdmin(false); setCurrentPage('home'); }} className="btn-text btn-text-red">
+                Sair
+              </button>
             </div>
-            
-            {/* Cards de Estatística */}
             <div className="grid grid-cols-3 gap-4 mb-8">
               <div className="stat-card badge-blue"><p>Participantes</p><h3>{guests.length}</h3></div>
               <div className="stat-card badge-green"><p>Itens Esgotados</p><h3>{gifts.filter(g => g.reserved).length}</h3></div>
               <div className="stat-card badge-purple"><p>Contribuições PIX</p><h3>{pixContributions.length}</h3></div>
             </div>
-
-            {/* MURAL DE RECADOS */}
-            <div className="mb-8 p-4 bg-pink-50 rounded-lg border border-pink-100">
-              <h3 className="text-lg font-bold text-pink-700 mb-4 flex items-center">
-                <MessageCircle size={20} className="mr-2" /> Mural de Recados ({guests.filter(g => g.message).length})
-              </h3>
-              <div className="space-y-3 max-h-60 overflow-y-auto">
-                {guests.filter(g => g.message).length === 0 ? <p className="text-sm text-gray-500 italic">Nenhuma mensagem ainda.</p> : 
-                  guests.filter(g => g.message).map(g => (
-                    <div key={g.id} className="bg-white p-3 rounded shadow-sm">
-                      <p className="text-sm font-bold text-gray-800">{g.name} <span className="text-xs font-normal text-gray-500">- {g.phone}</span></p>
-                      <p className="text-gray-600 mt-1 italic">"{g.message}"</p>
-                    </div>
-                  ))
-                }
-              </div>
-            </div>
             
-            <h3 className="text-lg font-bold mb-4">{editingId ? `✏️ Editando` : '➕ Adicionar Novo Item'}</h3>
+            <h3 className="text-lg font-bold mb-4">
+              {editingId ? `Editando: ${newGift.name}` : 'Adicionar Novo Item'}
+            </h3>
             
             <div className="grid grid-cols-2 gap-4 mb-8">
               <input type="text" placeholder="Nome *" value={newGift.name} onChange={(e) => setNewGift({...newGift, name: e.target.value})} className="input" />
@@ -607,23 +575,25 @@ export default function WeddingGiftSite() {
               <input type="url" placeholder="Imagem URL" value={newGift.image} onChange={(e) => setNewGift({...newGift, image: e.target.value})} className="input" />
               <input type="url" placeholder="Link Produto" value={newGift.link} onChange={(e) => setNewGift({...newGift, link: e.target.value})} className="input" />
               
-              {/* Select de Categoria */}
-              <div style={{gridColumn: '1 / -1'}}>
-                <label className="text-sm font-bold text-gray-700 block mb-1">Categoria</label>
-                <select className="input" value={newGift.category} onChange={(e) => setNewGift({...newGift, category: e.target.value})}>
-                  {CATEGORIES.filter(c => c !== 'Todos').map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-
+              {/* Checkbox e Input de Quantidade */}
               <div style={{gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap'}}>
                 <label className="label-checkbox">
                   <input type="checkbox" checked={newGift.allowMultiple} onChange={(e) => setNewGift({...newGift, allowMultiple: e.target.checked})} className="checkbox" />
                   <span>Permitir múltiplas compras?</span>
                 </label>
+
+                {/* SÓ APARECE SE FOR MULTIPLO */}
                 {newGift.allowMultiple && (
                   <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
                     <label className="text-sm font-bold text-gray-700">Qtd. Máxima:</label>
-                    <input type="number" min="1" value={newGift.maxQuantity} onChange={(e) => setNewGift({...newGift, maxQuantity: e.target.value})} className="input" style={{width: '80px', padding: '0.4rem'}} />
+                    <input 
+                      type="number" 
+                      min="1"
+                      value={newGift.maxQuantity} 
+                      onChange={(e) => setNewGift({...newGift, maxQuantity: e.target.value})} 
+                      className="input" 
+                      style={{width: '80px', padding: '0.4rem'}} 
+                    />
                   </div>
                 )}
               </div>
@@ -633,35 +603,40 @@ export default function WeddingGiftSite() {
                   {editingId ? <><Edit size={20} /> Salvar Alterações</> : <><Plus size={20} /> Adicionar Item</>}
                 </button>
                 {editingId && (
-                  <button onClick={handleCancelEdit} disabled={loading} className="btn btn-secondary" style={{width: 'auto'}}><X size={20} /> Cancelar</button>
+                  <button onClick={handleCancelEdit} disabled={loading} className="btn btn-secondary" style={{width: 'auto'}}>
+                    <X size={20} /> Cancelar
+                  </button>
                 )}
               </div>
             </div>
 
-            <h3 className="text-lg font-bold mb-4">📦 Lista de Itens ({gifts.length})</h3>
+            <h3 className="text-lg font-bold mb-4">Lista de Itens ({gifts.length})</h3>
             <div className="grid grid-cols-3 gap-4">
-              {gifts.map(gift => (
-                <div key={gift.id} className="relative p-4 border rounded bg-white" style={editingId === gift.id ? {borderColor: '#ec4899', borderWidth: '2px'} : {}}>
-                  {gift.image && <img src={gift.image} alt={gift.name} style={{width:'100%', height:'6rem', objectFit:'contain'}} />}
-                  
-                  <span className="badge badge-gray mb-2">{gift.category || 'Outros'}</span>
-                  
-                  <h4 className="font-bold text-sm">{gift.name}</h4>
-                  <p className="text-xs text-gray-600 mb-2">{gift.description}</p>
-                  
-                  <div className="text-xs bg-gray-100 p-1 rounded mb-2">
-                     Status: <strong>{gift.purchaseCount || 0} / {gift.maxQuantity || 1}</strong>
-                  </div>
+              {gifts.map(gift => {
+                const count = gift.purchaseCount || 0;
+                const max = gift.maxQuantity || 1;
 
-                  {gift.reserved && <p className="text-xs text-green-600 font-bold">✅ ESGOTADO</p>}
-                  {!gift.allowMultiple && gift.reservedBy && <p className="text-xs text-gray-500">Por: {gift.reservedBy}</p>}
-                  
-                  <div className="absolute top-2 right-2 flex gap-1">
-                    <button onClick={() => handleStartEdit(gift)} disabled={loading} className="icon-btn" style={{backgroundColor: '#3b82f6', width:'1.5rem', height:'1.5rem'}} title="Editar"><Edit size={12} /></button>
-                    <button onClick={() => handleDeleteGift(gift.id)} disabled={loading} className="icon-btn" style={{width:'1.5rem', height:'1.5rem'}} title="Deletar"><Trash2 size={12} /></button>
+                return (
+                  <div key={gift.id} className="relative p-4 border rounded bg-white" style={editingId === gift.id ? {borderColor: '#ec4899', borderWidth: '2px'} : {}}>
+                    {gift.image && <img src={gift.image} alt={gift.name} style={{width:'100%', height:'6rem', objectFit:'contain'}} />}
+                    <h4 className="font-bold text-sm">{gift.name}</h4>
+                    <p className="text-xs text-gray-600 mb-2">{gift.description}</p>
+                    
+                    {/* Status no Admin */}
+                    <div className="text-xs bg-gray-100 p-1 rounded mb-2">
+                       Status: <strong>{count} / {max}</strong> comprados
+                    </div>
+
+                    {gift.reserved && <p className="text-xs text-green-600 font-bold">ESGOTADO</p>}
+                    {!gift.allowMultiple && gift.reservedBy && <p className="text-xs text-gray-500">Por: {gift.reservedBy}</p>}
+                    
+                    <div className="absolute top-2 right-2 flex gap-1">
+                      <button onClick={() => handleStartEdit(gift)} disabled={loading} className="icon-btn" style={{backgroundColor: '#3b82f6', width:'1.5rem', height:'1.5rem'}} title="Editar"><Edit size={12} /></button>
+                      <button onClick={() => handleDeleteGift(gift.id)} disabled={loading} className="icon-btn" style={{width:'1.5rem', height:'1.5rem'}} title="Deletar"><Trash2 size={12} /></button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -671,37 +646,11 @@ export default function WeddingGiftSite() {
 
   if (currentPage === 'thanks') {
     return (
-      <div className="min-h-screen bg-gradient flex items-center justify-center px-4 overflow-hidden">
-        {/* CHUVA DE CONFETES */}
-        <Confetti width={windowSize.width} height={windowSize.height} recycle={false} numberOfPieces={500} />
-
-        <div className="text-center card max-w-md z-10 relative">
+      <div className="min-h-screen bg-gradient flex items-center justify-center px-4">
+        <div className="text-center card max-w-md">
           <CheckCircle className="icon-center text-green-500 mb-6" size={96} />
           <h2 className="text-4xl font-bold text-gray-800 mb-4">Obrigado!</h2>
           <p className="text-gray-600 mb-8">Sua confirmação e presente foram registrados com sucesso.</p>
-
-          {/* ÁREA DE MENSAGEM (MURAL) */}
-          {!messageSent ? (
-            <div className="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-200">
-              <p className="text-sm text-gray-700 mb-2 font-semibold">Deixe um recadinho para nós! 💌</p>
-              <textarea 
-                className="input mb-2" 
-                rows="3" 
-                placeholder="Escreva sua mensagem aqui..."
-                value={guestMessage}
-                onChange={(e) => setGuestMessage(e.target.value)}
-              ></textarea>
-              <button onClick={handleSendMessage} disabled={loading || !guestMessage.trim()} className="btn btn-primary" style={{fontSize: '0.9rem'}}>
-                Enviar Mensagem
-              </button>
-            </div>
-          ) : (
-            <div className="bg-green-50 p-4 rounded-lg mb-6 text-green-700 border border-green-100">
-              <p className="font-bold">Mensagem enviada! </p>
-              <p className="text-sm">Adoramos ler seus recadinhos.</p>
-            </div>
-          )}
-
           <button onClick={() => setCurrentPage('home')} className="btn btn-primary w-auto mx-auto px-8">Voltar ao Início</button>
         </div>
       </div>
