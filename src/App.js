@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Gift, DollarSign, Lock, Trash2, Plus, ExternalLink, AlertCircle, CheckCircle, Send, Info, Edit, X, MessageCircle, ChevronUp } from 'lucide-react';
+import { Heart, Gift, DollarSign, Lock, Trash2, Plus, ExternalLink, AlertCircle, CheckCircle, Send, Info, Edit, X, MessageCircle, ChevronUp, UserX, FileText } from 'lucide-react';
 import { db } from './firebase';
 import { 
   collection, 
@@ -72,6 +72,7 @@ export default function WeddingGiftSite() {
   const [adminPassword, setAdminPassword] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [showPixDetails, setShowPixDetails] = useState(false);
+  const [showGuestList, setShowGuestList] = useState(true); // Novo estado para lista de convidados
   
   const [toast, setToast] = useState(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -138,7 +139,7 @@ export default function WeddingGiftSite() {
 
   const totalPixValue = pixContributions.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
 
-  // --- AÇÕES ---
+  // --- AÇÕES DO USUÁRIO ---
 
   const handlePhoneChange = (e) => {
     setGuestPhone(maskPhone(e.target.value));
@@ -282,7 +283,7 @@ export default function WeddingGiftSite() {
     }
   };
 
-  // --- ADMIN ---
+  // --- FUNÇÕES ADMIN AVANÇADAS ---
 
   const handleAdminLogin = async () => {
     setLoading(true);
@@ -296,6 +297,67 @@ export default function WeddingGiftSite() {
         setAdminPassword('');
       }
     } catch (error) { showToast('Erro de conexão.', 'error'); } finally { setLoading(false); }
+  };
+
+  // Excluir PIX e atualizar listas
+  const handleDeletePix = async (pixId) => {
+    if (!window.confirm('Tem certeza que deseja excluir este registro de PIX?')) return;
+    setLoading(true);
+    try {
+      await deleteDoc(doc(db, 'pixContributions', pixId));
+      await loadPixContributions();
+      showToast('Pix excluído com sucesso.', 'success');
+    } catch (error) {
+      showToast('Erro ao excluir Pix.', 'error');
+    } finally { setLoading(false); }
+  };
+
+  // Excluir Mensagem (apenas limpa o campo)
+  const handleDeleteMessage = async (guestId) => {
+    if (!window.confirm('Apagar o recado deste convidado?')) return;
+    setLoading(true);
+    try {
+      const guestRef = doc(db, 'guests', guestId);
+      await updateDoc(guestRef, { message: '', messageAt: null });
+      await loadGuests();
+      showToast('Mensagem apagada.', 'success');
+    } catch (error) {
+      showToast('Erro ao apagar mensagem.', 'error');
+    } finally { setLoading(false); }
+  };
+
+  // Excluir Convidado e Liberar Presente
+  const handleDeleteGuest = async (guest) => {
+    if (!window.confirm(`ATENÇÃO: Isso removerá ${guest.name} da lista. Se ele escolheu um presente, o presente ficará disponível novamente. Confirmar?`)) return;
+    
+    setLoading(true);
+    try {
+      // 1. Se tiver presente, libera
+      if (guest.giftId) {
+        const giftDoc = await getDoc(doc(db, 'gifts', guest.giftId));
+        if (giftDoc.exists()) {
+          const giftData = giftDoc.data();
+          const newCount = Math.max(0, (giftData.purchaseCount || 1) - 1);
+          await updateDoc(doc(db, 'gifts', guest.giftId), {
+            purchaseCount: newCount,
+            reserved: false, // Reabre o presente se estava fechado
+            // Se for o único comprador, limpa o nome
+            reservedBy: giftData.reservedById === guest.id ? null : giftData.reservedBy,
+            reservedById: giftData.reservedById === guest.id ? null : giftData.reservedById
+          });
+        }
+      }
+
+      // 2. Deleta o convidado
+      await deleteDoc(doc(db, 'guests', guest.id));
+      
+      await loadGuests();
+      await loadGifts();
+      showToast('Convidado removido e presente liberado.', 'success');
+    } catch (error) {
+      console.error(error);
+      showToast('Erro ao remover convidado.', 'error');
+    } finally { setLoading(false); }
   };
 
   const handleStartEdit = (gift) => {
@@ -386,8 +448,6 @@ export default function WeddingGiftSite() {
 
           <div className="card">
             <h2 className="text-2xl font-semibold text-gray-800 mb-8 text-center">Identifique-se</h2>
-            
-            {/* ESPAÇAMENTO AUMENTADO (space-y-6) */}
             <div className="space-y-6">
               <div>
                 <label className="text-gray-700 font-medium mb-2" style={{display: 'block'}}>Nome Completo *</label>
@@ -399,9 +459,7 @@ export default function WeddingGiftSite() {
               </div>
               <button onClick={handleGuestIdentification} disabled={loading} className="btn btn-primary">{loading ? 'Aguarde...' : 'Entrar'}</button>
             </div>
-
-            {/* BOTÃO DO ADMIN BEM SEPARADO (mt-8) */}
-            <button onClick={() => setCurrentPage('adminLogin')} className="btn-text btn-text-gray mt-8">
+            <button onClick={() => setCurrentPage('adminLogin')} className="btn-text btn-text-gray w-full mt-8">
               <Lock size={16} /> Área do Administrador
             </button>
           </div>
@@ -589,7 +647,6 @@ export default function WeddingGiftSite() {
     return (
       <div className="min-h-screen bg-gradient-gray flex items-center justify-center px-4">
         <ToastNotification />
-        {/* CADEADO CENTRALIZADO COM FLEX */}
         <div className="card flex flex-col items-center" style={{maxWidth: '24rem'}}>
           <div className="flex justify-center w-full mb-6">
              <Lock className="text-gray-700" size={48} />
@@ -616,30 +673,84 @@ export default function WeddingGiftSite() {
               <button onClick={() => { setIsAdmin(false); setCurrentPage('home'); }} className="btn-text btn-text-red" style={{width:'auto'}}>Sair</button>
             </div>
             
+            {/* CARD DE STATS */}
             <div className="grid grid-cols-3 gap-4 mb-8">
-              <div className="stat-card badge-blue"><p>Pessoas</p><h3>{guests.length}</h3></div>
+              <div className="stat-card badge-blue" style={{cursor: 'pointer'}} onClick={() => setShowGuestList(!showGuestList)}>
+                <p>Pessoas</p>
+                <h3>{guests.length}</h3>
+                <span style={{fontSize:'0.7rem'}}>{showGuestList ? '▲' : '▼'}</span>
+              </div>
               <div className="stat-card badge-green"><p>Esgotados</p><h3>{gifts.filter(g => g.reserved).length}</h3></div>
-              
-              {/* CARD PIX INTERATIVO */}
               <div className="stat-card badge-purple" style={{cursor: 'pointer'}} onClick={() => setShowPixDetails(!showPixDetails)}>
                 <p>PIX</p>
                 <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '0.5rem'}}>
                   <h3>{pixContributions.length}</h3>
                   <span style={{fontSize: '0.9rem', opacity: 0.8}}>({formatCurrency(totalPixValue)})</span>
+                  <span style={{fontSize:'0.7rem'}}>{showPixDetails ? '▲' : '▼'}</span>
                 </div>
               </div>
             </div>
 
+            {/* --- GERENCIAMENTO DE CONVIDADOS (NOVA SEÇÃO) --- */}
+            {showGuestList && (
+              <div className="mb-8 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                <h3 className="text-lg font-bold text-blue-800 mb-4">Gerenciamento de Convidados</h3>
+                <div className="overflow-x-auto max-h-80 overflow-y-auto">
+                  <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem'}}>
+                    <thead>
+                      <tr style={{textAlign: 'left', borderBottom: '1px solid #bfdbfe'}}>
+                        <th className="p-2">Nome / Contato</th>
+                        <th className="p-2">Escolha</th>
+                        <th className="p-2 text-center">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {guests.map(guest => (
+                        <tr key={guest.id} style={{borderBottom: '1px solid #e0f2fe'}}>
+                          <td className="p-2">
+                            <strong>{guest.name}</strong><br/>
+                            <span className="text-gray-500 text-xs">{guest.phone}</span>
+                          </td>
+                          <td className="p-2">
+                            {guest.giftName ? (
+                              <span className="text-green-700 text-xs bg-green-100 px-2 py-1 rounded">🎁 {guest.giftName}</span>
+                            ) : guest.pixAmount ? (
+                              <span className="text-purple-700 text-xs bg-purple-100 px-2 py-1 rounded">💰 PIX: {formatCurrency(guest.pixAmount)}</span>
+                            ) : (
+                              <span className="text-gray-400 text-xs">Apenas confirmou</span>
+                            )}
+                          </td>
+                          <td className="p-2 text-center">
+                            <div className="flex justify-center gap-2">
+                              {guest.message && (
+                                <button onClick={() => handleDeleteMessage(guest.id)} className="icon-btn" style={{width:'28px', height:'28px', background:'#fcd34d'}} title="Apagar Mensagem">
+                                  <FileText size={14} />
+                                </button>
+                              )}
+                              <button onClick={() => handleDeleteGuest(guest)} className="icon-btn" style={{width:'28px', height:'28px', background:'#ef4444'}} title="Excluir Convidado">
+                                <UserX size={14} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
             {/* EXTRATO PIX */}
             {showPixDetails && (
               <div className="mb-8 p-4 bg-purple-50 rounded-lg border border-purple-100">
-                <h3 className="text-lg font-bold text-purple-800 mb-4">Extrato</h3>
-                <div className="overflow-x-auto">
+                <h3 className="text-lg font-bold text-purple-800 mb-4">Extrato Financeiro (PIX)</h3>
+                <div className="overflow-x-auto max-h-60 overflow-y-auto">
                   <table style={{width: '100%', borderCollapse: 'collapse'}}>
                     <thead>
                       <tr style={{textAlign: 'left', borderBottom: '1px solid #d8b4fe'}}>
                         <th className="p-2">Nome</th>
                         <th className="p-2">Valor</th>
+                        <th className="p-2 text-right">Excluir</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -650,6 +761,11 @@ export default function WeddingGiftSite() {
                             <span className="text-xs text-gray-500">{pix.guestPhone}</span>
                           </td>
                           <td className="p-2 font-bold text-green-700">{formatCurrency(pix.amount)}</td>
+                          <td className="p-2 text-right">
+                             <button onClick={() => handleDeletePix(pix.id)} style={{background:'none', border:'none', cursor:'pointer', color:'#ef4444'}} title="Excluir Registro">
+                               <Trash2 size={16} />
+                             </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -658,16 +774,22 @@ export default function WeddingGiftSite() {
               </div>
             )}
 
+            {/* MURAL DE RECADOS */}
             <div className="mb-8 p-4 bg-pink-50 rounded-lg border border-pink-100">
               <h3 className="text-lg font-bold text-pink-700 mb-4 flex items-center">
-                <MessageCircle size={20} className="mr-2" /> Recados ({guests.filter(g => g.message).length})
+                <MessageCircle size={20} className="mr-2" /> Mural de Recados ({guests.filter(g => g.message).length})
               </h3>
               <div className="space-y-3 max-h-60 overflow-y-auto">
                 {guests.filter(g => g.message).length === 0 ? <p className="text-sm text-gray-500 italic">Nenhuma mensagem.</p> : 
                   guests.filter(g => g.message).map(g => (
-                    <div key={g.id} className="bg-white p-3 rounded shadow-sm">
-                      <p className="text-sm font-bold text-gray-800">{g.name}</p>
-                      <p className="text-gray-600 mt-1 italic">"{g.message}"</p>
+                    <div key={g.id} className="bg-white p-3 rounded shadow-sm flex justify-between items-start">
+                      <div>
+                        <p className="text-sm font-bold text-gray-800">{g.name}</p>
+                        <p className="text-gray-600 mt-1 italic">"{g.message}"</p>
+                      </div>
+                      <button onClick={() => handleDeleteMessage(g.id)} className="text-red-400 hover:text-red-600" style={{background:'none', border:'none', cursor:'pointer'}} title="Apagar Mensagem">
+                        <X size={16} />
+                      </button>
                     </div>
                   ))
                 }
