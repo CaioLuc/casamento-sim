@@ -373,9 +373,9 @@ export default function WeddingGiftSite() {
     return (
       <div className="min-h-screen bg-gradient">
         <ToastNotification />
-        <div className="container py-12">
-          <div className="max-w-2xl mx-auto text-center mb-8">
-            <Heart className="icon-center text-pink-500 mb-4 animate-pulse" size={64} />
+        <div className="container py-12 center-content">
+          <div className="text-center mb-8">
+            <Heart className="icon-center text-pink-500 mb-4 animate-pulse" size={64} style={{display:'block', margin:'0 auto'}} />
             <h1 className="text-5xl font-bold text-gray-800 mb-2">Caio & Evelyn</h1>
             <p className="text-xl text-gray-600 mb-6">Chá de Casa Nova / Enxoval</p>
             <div className="divider mb-8"></div>
@@ -384,10 +384,10 @@ export default function WeddingGiftSite() {
             </p>
           </div>
 
-          <div className="card mx-auto">
+          <div className="card">
             <h2 className="text-2xl font-semibold text-gray-800 mb-8 text-center">Identifique-se</h2>
             
-            {/* AUMENTADO O ESPAÇAMENTO AQUI (space-y-6) */}
+            {/* ESPAÇAMENTO AUMENTADO (space-y-6) */}
             <div className="space-y-6">
               <div>
                 <label className="text-gray-700 font-medium mb-2" style={{display: 'block'}}>Nome Completo *</label>
@@ -400,8 +400,8 @@ export default function WeddingGiftSite() {
               <button onClick={handleGuestIdentification} disabled={loading} className="btn btn-primary">{loading ? 'Aguarde...' : 'Entrar'}</button>
             </div>
 
-            {/* AUMENTADO O ESPAÇAMENTO AQUI (mt-8) */}
-            <button onClick={() => setCurrentPage('adminLogin')} className="btn-text btn-text-gray w-full mt-8">
+            {/* BOTÃO DO ADMIN BEM SEPARADO (mt-8) */}
+            <button onClick={() => setCurrentPage('adminLogin')} className="btn-text btn-text-gray mt-8">
               <Lock size={16} /> Área do Administrador
             </button>
           </div>
@@ -412,10 +412,10 @@ export default function WeddingGiftSite() {
 
   if (currentPage === 'intro' && currentGuest) {
     return (
-      <div className="min-h-screen bg-gradient py-12 px-4">
+      <div className="min-h-screen bg-gradient py-12 px-4 center-content">
         <ToastNotification />
-        <div className="card mx-auto text-center">
-          <Info className="icon-center text-blue-600 mb-4" size={48} />
+        <div className="card text-center">
+          <Info className="icon-center text-blue-600 mb-4" size={48} style={{display:'block', margin:'0 auto'}} />
           <h2 className="text-2xl font-bold text-gray-800 mb-6">Como funciona?</h2>
           <div className="text-left space-y-4 mb-8 text-gray-600">
             <p className="text-lg">Olá <strong>{currentGuest.name}</strong>!</p>
@@ -443,7 +443,7 @@ export default function WeddingGiftSite() {
     return (
       <div className="min-h-screen bg-gradient py-8 px-4">
         <ToastNotification />
-        <div className="container mx-auto">
+        <div className="container">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Olá, {currentGuest.name}! 👋</h2>
             <p className="text-gray-600">Escolha como prefere nos presentear</p>
@@ -463,7 +463,7 @@ export default function WeddingGiftSite() {
                       <p className="font-bold text-lg">{selectedGift.name}</p>
                       {selectedGift.link && <a href={selectedGift.link} target="_blank" rel="noopener noreferrer" className="link"><ExternalLink size={16} style={{marginRight: '0.25rem'}} /> Ver sugestão</a>}
                     </div>
-                    <button onClick={handleRemoveGiftSelection} className="btn-text btn-text-red" style={{fontSize: '0.8rem'}}>Remover</button>
+                    <button onClick={handleRemoveGiftSelection} className="btn-text btn-text-red" style={{fontSize: '0.8rem', width:'auto'}}>Remover</button>
                   </div>
                 )}
                 {selectedPix && (
@@ -472,7 +472,7 @@ export default function WeddingGiftSite() {
                       <p className="text-sm text-gray-600 mb-1">💰 Contribuição PIX:</p>
                       <p className="font-bold text-2xl text-green-600">R$ {selectedPix.amount.toFixed(2)}</p>
                     </div>
-                    <button onClick={handleRemovePixSelection} className="btn-text btn-text-red" style={{fontSize: '0.8rem'}}>Remover</button>
+                    <button onClick={handleRemovePixSelection} className="btn-text btn-text-red" style={{fontSize: '0.8rem', width:'auto'}}>Remover</button>
                   </div>
                 )}
               </div>
@@ -589,15 +589,17 @@ export default function WeddingGiftSite() {
     return (
       <div className="min-h-screen bg-gradient-gray flex items-center justify-center px-4">
         <ToastNotification />
-        {/* CENTRALIZAÇÃO DO CADEADO */}
+        {/* CADEADO CENTRALIZADO COM FLEX */}
         <div className="card flex flex-col items-center" style={{maxWidth: '24rem'}}>
-          <Lock className="icon-center text-gray-700 mb-6" size={48} />
+          <div className="flex justify-center w-full mb-6">
+             <Lock className="text-gray-700" size={48} />
+          </div>
           <h2 className="text-xl font-bold text-center mb-6">Área Admin</h2>
           <div className="space-y-4 w-full">
             <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="input" placeholder="Senha" />
             <button onClick={handleAdminLogin} className="btn btn-secondary w-full">{loading ? '...' : 'Entrar'}</button>
           </div>
-          <button onClick={() => setCurrentPage('home')} className="btn-text btn-text-gray w-full mt-4">Voltar</button>
+          <button onClick={() => setCurrentPage('home')} className="btn-text btn-text-gray mt-4">Voltar</button>
         </div>
       </div>
     );
@@ -607,11 +609,11 @@ export default function WeddingGiftSite() {
     return (
       <div className="min-h-screen py-8 px-4" style={{backgroundColor: '#f3f4f6'}}>
         <ToastNotification />
-        <div className="container mx-auto" style={{maxWidth: '800px'}}>
+        <div className="container" style={{maxWidth: '800px'}}>
           <div className="card mb-8">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-gray-800">Painel</h2>
-              <button onClick={() => { setIsAdmin(false); setCurrentPage('home'); }} className="btn-text btn-text-red">Sair</button>
+              <button onClick={() => { setIsAdmin(false); setCurrentPage('home'); }} className="btn-text btn-text-red" style={{width:'auto'}}>Sair</button>
             </div>
             
             <div className="grid grid-cols-3 gap-4 mb-8">
