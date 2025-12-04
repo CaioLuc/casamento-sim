@@ -10,8 +10,11 @@
     "firebase": "^12.6.0",
     "lucide-react": "^0.553.0",
     "react": "^19.2.0",
+    "react-confetti": "^6.4.0",
+    "react-currency-input-field": "^4.0.3",
     "react-dom": "^19.2.0",
-    "react-scripts": "5.0.1",
+    "react-input-mask": "^2.0.4",
+    "react-scripts": "^5.0.1",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
