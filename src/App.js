@@ -15,6 +15,18 @@ import './App.css';
 
 const CATEGORIES = ['Todos', 'Cozinha', 'Quarto', 'Sala', 'Banheiro', 'Eletro', 'Decoração', 'Outros'];
 
+// --- ESTILOS DE CATEGORIA ---
+const CATEGORY_STYLES = {
+  'Todos':      { bg: '#f3f4f6', text: '#374151', activeBg: '#374151' },
+  'Cozinha':    { bg: '#ffedd5', text: '#c2410c', activeBg: '#c2410c' },
+  'Quarto':     { bg: '#f3e8ff', text: '#7e22ce', activeBg: '#7e22ce' },
+  'Sala':       { bg: '#dbeafe', text: '#1d4ed8', activeBg: '#1d4ed8' },
+  'Banheiro':   { bg: '#ccfbf1', text: '#0f766e', activeBg: '#0f766e' },
+  'Eletro':     { bg: '#e2e8f0', text: '#475569', activeBg: '#475569' },
+  'Decoração':  { bg: '#fce7f3', text: '#be185d', activeBg: '#be185d' },
+  'Outros':     { bg: '#dcfce7', text: '#15803d', activeBg: '#15803d' }
+};
+
 // --- FUNÇÕES AUXILIARES ---
 const maskPhone = (value) => {
   return value
@@ -59,7 +71,6 @@ export default function WeddingGiftSite() {
   
   const [adminPassword, setAdminPassword] = useState('');
   const [editingId, setEditingId] = useState(null);
-  // showPixDetails removido pois unificamos
   const [showGuestList, setShowGuestList] = useState(true);
   
   const [toast, setToast] = useState(null);
@@ -106,7 +117,7 @@ export default function WeddingGiftSite() {
       const querySnapshot = await getDocs(collection(db, 'gifts'));
       const giftsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setGifts(giftsData);
-    } catch (error) { console.error('Erro ao carregar presentes:', error); }
+    } catch (error) { console.error('Erro:', error); }
   };
 
   const loadGuests = async () => {
@@ -114,7 +125,7 @@ export default function WeddingGiftSite() {
       const querySnapshot = await getDocs(collection(db, 'guests'));
       const guestsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setGuests(guestsData);
-    } catch (error) { console.error('Erro ao carregar convidados:', error); }
+    } catch (error) { console.error('Erro:', error); }
   };
 
   const loadPixContributions = async () => {
@@ -122,7 +133,7 @@ export default function WeddingGiftSite() {
       const querySnapshot = await getDocs(collection(db, 'pixContributions'));
       const pixData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setPixContributions(pixData);
-    } catch (error) { console.error('Erro ao carregar Pix:', error); }
+    } catch (error) { console.error('Erro:', error); }
   };
 
   const totalPixValue = pixContributions.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
@@ -152,7 +163,7 @@ export default function WeddingGiftSite() {
       setCurrentPage('intro'); 
       await loadGuests();
     } catch (error) {
-      console.error('Erro ao salvar convidado:', error);
+      console.error('Erro:', error);
       showToast('Erro ao salvar. Tente novamente.', 'error');
     } finally {
       setLoading(false);
@@ -246,7 +257,7 @@ export default function WeddingGiftSite() {
       setCurrentPage('thanks');
       
     } catch (error) {
-      console.error('Erro ao confirmar:', error);
+      console.error('Erro:', error);
       showToast('Erro ao confirmar: ' + error.message, 'error');
     } finally {
       setLoading(false);
@@ -266,7 +277,6 @@ export default function WeddingGiftSite() {
       await loadGuests();
       showToast('Mensagem enviada com sucesso!', 'success');
     } catch (error) {
-      console.error('Erro ao enviar mensagem:', error);
       showToast('Erro ao enviar mensagem.', 'error');
     } finally {
       setLoading(false);
@@ -795,17 +805,27 @@ export default function WeddingGiftSite() {
 
             <h3 className="text-lg font-bold mb-4">📦 Itens ({gifts.length})</h3>
             <div className="grid grid-cols-3 gap-4">
-              {gifts.map(gift => (
-                <div key={gift.id} className="relative p-4 border rounded bg-white" style={editingId === gift.id ? {borderColor: '#ec4899', borderWidth: '2px'} : {}}>
-                  {gift.image && <img src={gift.image} alt={gift.name} style={{width:'100%', height:'5rem', objectFit:'contain'}} />}
-                  <h4 className="font-bold text-sm">{gift.name}</h4>
-                  <div className="text-xs bg-gray-100 p-1 rounded mb-2">{gift.purchaseCount || 0}/{gift.maxQuantity || 1}</div>
-                  <div className="absolute top-2 right-2 flex gap-1">
-                    <button onClick={() => handleStartEdit(gift)} disabled={loading} className="icon-btn" style={{backgroundColor: '#3b82f6', width:'1.5rem', height:'1.5rem'}} title="Editar"><Edit size={12} /></button>
-                    <button onClick={() => handleDeleteGift(gift.id)} disabled={loading} className="icon-btn" style={{width:'1.5rem', height:'1.5rem'}} title="Deletar"><Trash2 size={12} /></button>
+              {gifts.map(gift => {
+                const catStyle = CATEGORY_STYLES[gift.category] || CATEGORY_STYLES['Outros'];
+                return (
+                  <div key={gift.id} className="relative p-4 border rounded bg-white" style={editingId === gift.id ? {borderColor: '#ec4899', borderWidth: '2px'} : {}}>
+                    {gift.image && <img src={gift.image} alt={gift.name} style={{width:'100%', height:'5rem', objectFit:'contain'}} />}
+                    
+                    {/* ETIQUETA COLORIDA APLICADA CORRETAMENTE AQUI */}
+                    <span className="badge mb-2" style={{backgroundColor: catStyle.bg, color: catStyle.text, fontSize: '0.7rem', display:'inline-block'}}>
+                      {gift.category || 'Outros'}
+                    </span>
+
+                    <h4 className="font-bold text-sm">{gift.name}</h4>
+                    <div className="text-xs bg-gray-100 p-1 rounded mb-2">{gift.purchaseCount || 0}/{gift.maxQuantity || 1}</div>
+                    
+                    <div className="absolute top-2 right-2 flex gap-1">
+                      <button onClick={() => handleStartEdit(gift)} disabled={loading} className="icon-btn" style={{backgroundColor: '#3b82f6', width:'1.5rem', height:'1.5rem'}} title="Editar"><Edit size={12} /></button>
+                      <button onClick={() => handleDeleteGift(gift.id)} disabled={loading} className="icon-btn" style={{width:'1.5rem', height:'1.5rem'}} title="Deletar"><Trash2 size={12} /></button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
