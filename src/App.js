@@ -11,12 +11,26 @@ import {
   serverTimestamp,
   getDoc
 } from 'firebase/firestore';
-import Confetti from 'react-confetti';
-import InputMask from 'react-input-mask';
-import CurrencyInput from 'react-currency-input-field';
 import './App.css';
 
 const CATEGORIES = ['Todos', 'Cozinha', 'Quarto', 'Sala', 'Banheiro', 'Eletro', 'Decoração', 'Outros'];
+
+// --- FUNÇÕES AUXILIARES DE MÁSCARA (NATIVAS) ---
+const maskPhone = (value) => {
+  return value
+    .replace(/\D/g, '') // Remove tudo o que não é dígito
+    .replace(/^(\d{2})(\d)/g, '($1) $2') // Coloca parênteses em volta dos dois primeiros dígitos
+    .replace(/(\d)(\d{4})$/, '$1-$2') // Coloca hífen entre o quarto e o quinto dígitos
+    .substring(0, 15); // Limita o tamanho
+};
+
+const maskCurrency = (value) => {
+  let v = value.replace(/\D/g, ''); // Remove tudo o que não é dígito
+  v = (v / 100).toFixed(2) + '';
+  v = v.replace('.', ',');
+  v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+  return 'R$ ' + v;
+};
 
 export default function WeddingGiftSite() {
   const [currentPage, setCurrentPage] = useState('home'); 
@@ -50,23 +64,15 @@ export default function WeddingGiftSite() {
     description: '',
     image: '',
     link: '',
-    category: 'Outros', // Categoria padrão
+    category: 'Outros', 
     allowMultiple: false,
     maxQuantity: 1
   });
-
-  // Tamanho da janela para o Confete
-  const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
 
   useEffect(() => {
     loadGifts();
     loadGuests();
     loadPixContributions();
-
-    // Monitorar redimensionamento para o confete
-    const handleResize = () => setWindowSize({ width: window.innerWidth, height: window.innerHeight });
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const loadGifts = async () => {
@@ -95,8 +101,11 @@ export default function WeddingGiftSite() {
 
   // --- AÇÕES DO USUÁRIO ---
 
+  const handlePhoneChange = (e) => {
+    setGuestPhone(maskPhone(e.target.value));
+  };
+
   const handleGuestIdentification = async () => {
-    // Validação simples do telefone (verifica se tem números suficientes)
     const cleanPhone = guestPhone.replace(/\D/g, '');
     if (!guestName || cleanPhone.length < 10) {
       alert('Por favor, preencha seu nome e um telefone válido.');
@@ -107,7 +116,7 @@ export default function WeddingGiftSite() {
     try {
       const guest = {
         name: guestName,
-        phone: guestPhone, // Salva formatado
+        phone: guestPhone, 
         timestamp: serverTimestamp()
       };
       const docRef = await addDoc(collection(db, 'guests'), guest);
@@ -131,6 +140,10 @@ export default function WeddingGiftSite() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handlePixChange = (e) => {
+    setPixAmount(maskCurrency(e.target.value));
+  };
+
   const handleSelectPix = () => {
     if (!pixAmount) {
       alert('Por favor, insira um valor válido');
@@ -138,7 +151,8 @@ export default function WeddingGiftSite() {
     }
     
     // Converte string "R$ 100,00" para number 100.00
-    const numericValue = parseFloat(pixAmount.replace('R$', '').replace('.', '').replace(',', '.'));
+    const cleanValue = pixAmount.replace('R$', '').replace(/\./g, '').replace(',', '.').trim();
+    const numericValue = parseFloat(cleanValue);
     
     if (isNaN(numericValue) || numericValue <= 0) {
       alert('Valor inválido');
@@ -151,8 +165,6 @@ export default function WeddingGiftSite() {
   };
 
   const handlePixPreset = (value) => {
-    // Formata para exibição no input controlado
-    // (Nota: O componente CurrencyInput lida com formatação, mas aqui simplificamos)
     setSelectedPix({ amount: value });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -219,7 +231,6 @@ export default function WeddingGiftSite() {
     }
   };
 
-  // Salvar mensagem do mural
   const handleSendMessage = async () => {
     if (!guestMessage.trim()) return;
     setLoading(true);
@@ -336,14 +347,14 @@ export default function WeddingGiftSite() {
               </div>
               <div>
                 <label className="text-gray-700 font-medium mb-2" style={{display: 'block'}}>Telefone *</label>
-                {/* INPUT MASK PARA TELEFONE */}
-                <InputMask 
-                  mask="(99) 99999-9999" 
+                <input 
+                  type="tel"
                   value={guestPhone} 
-                  onChange={(e) => setGuestPhone(e.target.value)}
+                  onChange={handlePhoneChange}
                   className="input"
-                  placeholder="(00) 99999-9999"
+                  placeholder="(00) 00000-0000"
                   disabled={loading}
+                  maxLength={15}
                 />
               </div>
               <button onClick={handleGuestIdentification} disabled={loading} className="btn btn-primary">{loading ? 'Aguarde...' : 'Entrar'}</button>
@@ -384,10 +395,7 @@ export default function WeddingGiftSite() {
 
   if (currentPage === 'gifts' && currentGuest) {
     const hasSelection = selectedGift || selectedPix;
-    // Filtra presentes pela categoria
-    const filteredGifts = categoryFilter === 'Todos' 
-      ? gifts 
-      : gifts.filter(g => g.category === categoryFilter);
+    const filteredGifts = categoryFilter === 'Todos' ? gifts : gifts.filter(g => g.category === categoryFilter);
     
     return (
       <div className="min-h-screen bg-gradient py-8 px-4">
@@ -397,7 +405,6 @@ export default function WeddingGiftSite() {
             <p className="text-gray-600">Escolha como prefere nos presentear</p>
           </div>
 
-          {/* --- RESUMO DA ESCOLHA --- */}
           {hasSelection && (
             <div className="card mb-8" style={{backgroundColor: '#ecfdf5', borderLeft: '4px solid #10b981'}}>
               <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
@@ -431,7 +438,6 @@ export default function WeddingGiftSite() {
             </div>
           )}
 
-          {/* --- OPÇÃO 1: PIX --- */}
           <div className="card mb-8">
             <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
               <DollarSign className="text-green-600" size={28} style={{marginRight: '0.5rem'}} />
@@ -445,15 +451,14 @@ export default function WeddingGiftSite() {
 
               {!selectedPix ? (
                 <>
-                  {/* INPUT MASK PARA MOEDA (PIX) */}
-                  <CurrencyInput
+                  <input
+                    type="text" 
+                    value={pixAmount}
+                    onChange={handlePixChange}
                     placeholder="Digite o valor (R$)"
-                    prefix="R$ "
-                    decimalsLimit={2}
-                    onValueChange={(value) => setPixAmount(value)}
                     className="input mb-4"
+                    inputMode="numeric"
                   />
-                  
                   <div style={{display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', justifyContent: 'center', flexWrap: 'wrap'}}>
                     {[50, 100, 150, 200].map(val => (
                       <button key={val} onClick={() => handlePixPreset(val)} className="btn" style={{width: 'auto', padding: '0.5rem 1rem', backgroundColor: '#f3f4f6', color: '#4b5563', border: '1px solid #d1d5db', fontSize: '0.9rem'}}>
@@ -473,22 +478,15 @@ export default function WeddingGiftSite() {
             </div>
           </div>
 
-          {/* --- OPÇÃO 2: PRESENTES COM FILTRO --- */}
           <div className="card mb-8">
             <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
               <Gift className="text-pink-500" size={28} style={{marginRight: '0.5rem'}} />
               Opção 2: Lista de Presentes
             </h3>
             
-            {/* Filtros de Categoria */}
             <div className="category-filters" style={{display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '1rem', marginBottom: '1rem'}}>
               {CATEGORIES.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setCategoryFilter(cat)}
-                  className={`badge ${categoryFilter === cat ? 'badge-blue' : 'badge-gray'}`}
-                  style={{cursor: 'pointer', border: 'none', padding: '0.5rem 1rem', fontSize: '0.85rem', whiteSpace: 'nowrap'}}
-                >
+                <button key={cat} onClick={() => setCategoryFilter(cat)} className={`badge ${categoryFilter === cat ? 'badge-blue' : 'badge-gray'}`} style={{cursor: 'pointer', border: 'none', padding: '0.5rem 1rem', fontSize: '0.85rem', whiteSpace: 'nowrap'}}>
                   {cat}
                 </button>
               ))}
@@ -510,21 +508,12 @@ export default function WeddingGiftSite() {
                   return (
                     <div key={gift.id} className={`gift-card ${isSoldOut ? 'reserved' : ''} ${selectedGift?.id === gift.id ? 'selected-card' : ''}`} style={selectedGift?.id === gift.id ? {borderColor: '#10b981', borderWidth: '2px'} : {}}>
                       {gift.image && <img src={gift.image} alt={gift.name} />}
-                      
-                      {/* Tag da Categoria no Card */}
                       <div style={{position: 'absolute', top: '0.5rem', left: '0.5rem'}}>
                         <span className="badge badge-gray" style={{fontSize: '0.65rem'}}>{gift.category || 'Outros'}</span>
                       </div>
-
                       <h4 className="font-bold text-md mb-1 leading-tight">{gift.name}</h4>
                       <p className="text-xs text-gray-600 mb-3">{gift.description}</p>
-                      
-                      {gift.allowMultiple && (
-                        <p className="text-xs text-blue-600 font-semibold mb-2 bg-blue-50 p-1 rounded">
-                          {count} de {max} comprados
-                        </p>
-                      )}
-
+                      {gift.allowMultiple && <p className="text-xs text-blue-600 font-semibold mb-2 bg-blue-50 p-1 rounded">{count} de {max} comprados</p>}
                       <div className="mt-auto space-y-2">
                         {isSoldOut ? (
                           <div className="badge badge-gray w-full"><Lock size={14} /> Esgotado</div>
@@ -575,14 +564,12 @@ export default function WeddingGiftSite() {
               <button onClick={() => { setIsAdmin(false); setCurrentPage('home'); }} className="btn-text btn-text-red">Sair</button>
             </div>
             
-            {/* Cards de Estatística */}
             <div className="grid grid-cols-3 gap-4 mb-8">
               <div className="stat-card badge-blue"><p>Participantes</p><h3>{guests.length}</h3></div>
               <div className="stat-card badge-green"><p>Itens Esgotados</p><h3>{gifts.filter(g => g.reserved).length}</h3></div>
               <div className="stat-card badge-purple"><p>Contribuições PIX</p><h3>{pixContributions.length}</h3></div>
             </div>
 
-            {/* MURAL DE RECADOS */}
             <div className="mb-8 p-4 bg-pink-50 rounded-lg border border-pink-100">
               <h3 className="text-lg font-bold text-pink-700 mb-4 flex items-center">
                 <MessageCircle size={20} className="mr-2" /> Mural de Recados ({guests.filter(g => g.message).length})
@@ -607,7 +594,6 @@ export default function WeddingGiftSite() {
               <input type="url" placeholder="Imagem URL" value={newGift.image} onChange={(e) => setNewGift({...newGift, image: e.target.value})} className="input" />
               <input type="url" placeholder="Link Produto" value={newGift.link} onChange={(e) => setNewGift({...newGift, link: e.target.value})} className="input" />
               
-              {/* Select de Categoria */}
               <div style={{gridColumn: '1 / -1'}}>
                 <label className="text-sm font-bold text-gray-700 block mb-1">Categoria</label>
                 <select className="input" value={newGift.category} onChange={(e) => setNewGift({...newGift, category: e.target.value})}>
@@ -643,19 +629,12 @@ export default function WeddingGiftSite() {
               {gifts.map(gift => (
                 <div key={gift.id} className="relative p-4 border rounded bg-white" style={editingId === gift.id ? {borderColor: '#ec4899', borderWidth: '2px'} : {}}>
                   {gift.image && <img src={gift.image} alt={gift.name} style={{width:'100%', height:'6rem', objectFit:'contain'}} />}
-                  
                   <span className="badge badge-gray mb-2">{gift.category || 'Outros'}</span>
-                  
                   <h4 className="font-bold text-sm">{gift.name}</h4>
                   <p className="text-xs text-gray-600 mb-2">{gift.description}</p>
-                  
-                  <div className="text-xs bg-gray-100 p-1 rounded mb-2">
-                     Status: <strong>{gift.purchaseCount || 0} / {gift.maxQuantity || 1}</strong>
-                  </div>
-
+                  <div className="text-xs bg-gray-100 p-1 rounded mb-2">Status: <strong>{gift.purchaseCount || 0} / {gift.maxQuantity || 1}</strong></div>
                   {gift.reserved && <p className="text-xs text-green-600 font-bold">✅ ESGOTADO</p>}
                   {!gift.allowMultiple && gift.reservedBy && <p className="text-xs text-gray-500">Por: {gift.reservedBy}</p>}
-                  
                   <div className="absolute top-2 right-2 flex gap-1">
                     <button onClick={() => handleStartEdit(gift)} disabled={loading} className="icon-btn" style={{backgroundColor: '#3b82f6', width:'1.5rem', height:'1.5rem'}} title="Editar"><Edit size={12} /></button>
                     <button onClick={() => handleDeleteGift(gift.id)} disabled={loading} className="icon-btn" style={{width:'1.5rem', height:'1.5rem'}} title="Deletar"><Trash2 size={12} /></button>
@@ -672,15 +651,16 @@ export default function WeddingGiftSite() {
   if (currentPage === 'thanks') {
     return (
       <div className="min-h-screen bg-gradient flex items-center justify-center px-4 overflow-hidden">
-        {/* CHUVA DE CONFETES */}
-        <Confetti width={windowSize.width} height={windowSize.height} recycle={false} numberOfPieces={500} />
+        {/* CONFETES CSS SIMPLES */}
+        <div className="confetti-container">
+          <div className="confetti"></div><div className="confetti"></div><div className="confetti"></div><div className="confetti"></div><div className="confetti"></div><div className="confetti"></div><div className="confetti"></div><div className="confetti"></div><div className="confetti"></div><div className="confetti"></div>
+        </div>
 
         <div className="text-center card max-w-md z-10 relative">
           <CheckCircle className="icon-center text-green-500 mb-6" size={96} />
           <h2 className="text-4xl font-bold text-gray-800 mb-4">Obrigado!</h2>
           <p className="text-gray-600 mb-8">Sua confirmação e presente foram registrados com sucesso.</p>
 
-          {/* ÁREA DE MENSAGEM (MURAL) */}
           {!messageSent ? (
             <div className="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-200">
               <p className="text-sm text-gray-700 mb-2 font-semibold">Deixe um recadinho para nós! 💌</p>
