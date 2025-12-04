@@ -15,17 +15,17 @@ import './App.css';
 
 const CATEGORIES = ['Todos', 'Cozinha', 'Quarto', 'Sala', 'Banheiro', 'Eletro', 'Decoração', 'Outros'];
 
-// --- FUNÇÕES AUXILIARES DE MÁSCARA (NATIVAS) ---
+// --- FUNÇÕES MANUAIS DE MÁSCARA (SEM BIBLIOTECAS) ---
 const maskPhone = (value) => {
   return value
-    .replace(/\D/g, '') // Remove tudo o que não é dígito
-    .replace(/^(\d{2})(\d)/g, '($1) $2') // Coloca parênteses em volta dos dois primeiros dígitos
-    .replace(/(\d)(\d{4})$/, '$1-$2') // Coloca hífen entre o quarto e o quinto dígitos
-    .substring(0, 15); // Limita o tamanho
+    .replace(/\D/g, '')
+    .replace(/^(\d{2})(\d)/g, '($1) $2')
+    .replace(/(\d)(\d{4})$/, '$1-$2')
+    .substring(0, 15);
 };
 
 const maskCurrency = (value) => {
-  let v = value.replace(/\D/g, ''); // Remove tudo o que não é dígito
+  let v = value.replace(/\D/g, '');
   v = (v / 100).toFixed(2) + '';
   v = v.replace('.', ',');
   v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
@@ -150,7 +150,6 @@ export default function WeddingGiftSite() {
       return;
     }
     
-    // Converte string "R$ 100,00" para number 100.00
     const cleanValue = pixAmount.replace('R$', '').replace(/\./g, '').replace(',', '.').trim();
     const numericValue = parseFloat(cleanValue);
     
@@ -451,14 +450,16 @@ export default function WeddingGiftSite() {
 
               {!selectedPix ? (
                 <>
+                  {/* INPUT COM MÁSCARA DE MOEDA MANUAL */}
                   <input
-                    type="text" 
+                    type="text"
                     value={pixAmount}
                     onChange={handlePixChange}
                     placeholder="Digite o valor (R$)"
                     className="input mb-4"
                     inputMode="numeric"
                   />
+                  
                   <div style={{display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', justifyContent: 'center', flexWrap: 'wrap'}}>
                     {[50, 100, 150, 200].map(val => (
                       <button key={val} onClick={() => handlePixPreset(val)} className="btn" style={{width: 'auto', padding: '0.5rem 1rem', backgroundColor: '#f3f4f6', color: '#4b5563', border: '1px solid #d1d5db', fontSize: '0.9rem'}}>
@@ -484,7 +485,7 @@ export default function WeddingGiftSite() {
               Opção 2: Lista de Presentes
             </h3>
             
-            <div className="category-filters" style={{display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '1rem', marginBottom: '1rem'}}>
+            <div className="category-filters">
               {CATEGORIES.map(cat => (
                 <button key={cat} onClick={() => setCategoryFilter(cat)} className={`badge ${categoryFilter === cat ? 'badge-blue' : 'badge-gray'}`} style={{cursor: 'pointer', border: 'none', padding: '0.5rem 1rem', fontSize: '0.85rem', whiteSpace: 'nowrap'}}>
                   {cat}
@@ -508,9 +509,12 @@ export default function WeddingGiftSite() {
                   return (
                     <div key={gift.id} className={`gift-card ${isSoldOut ? 'reserved' : ''} ${selectedGift?.id === gift.id ? 'selected-card' : ''}`} style={selectedGift?.id === gift.id ? {borderColor: '#10b981', borderWidth: '2px'} : {}}>
                       {gift.image && <img src={gift.image} alt={gift.name} />}
-                      <div style={{position: 'absolute', top: '0.5rem', left: '0.5rem'}}>
-                        <span className="badge badge-gray" style={{fontSize: '0.65rem'}}>{gift.category || 'Outros'}</span>
-                      </div>
+                      
+                      {/* AQUI ESTÁ A CORREÇÃO DA ETIQUETA */}
+                      <span className="badge badge-gray mb-2" style={{fontSize: '0.65rem'}}>
+                        {gift.category || 'Outros'}
+                      </span>
+
                       <h4 className="font-bold text-md mb-1 leading-tight">{gift.name}</h4>
                       <p className="text-xs text-gray-600 mb-3">{gift.description}</p>
                       {gift.allowMultiple && <p className="text-xs text-blue-600 font-semibold mb-2 bg-blue-50 p-1 rounded">{count} de {max} comprados</p>}
@@ -570,6 +574,7 @@ export default function WeddingGiftSite() {
               <div className="stat-card badge-purple"><p>Contribuições PIX</p><h3>{pixContributions.length}</h3></div>
             </div>
 
+            {/* MURAL DE RECADOS */}
             <div className="mb-8 p-4 bg-pink-50 rounded-lg border border-pink-100">
               <h3 className="text-lg font-bold text-pink-700 mb-4 flex items-center">
                 <MessageCircle size={20} className="mr-2" /> Mural de Recados ({guests.filter(g => g.message).length})
@@ -651,9 +656,10 @@ export default function WeddingGiftSite() {
   if (currentPage === 'thanks') {
     return (
       <div className="min-h-screen bg-gradient flex items-center justify-center px-4 overflow-hidden">
-        {/* CONFETES CSS SIMPLES */}
+        {/* CONFETES CSS PURO */}
         <div className="confetti-container">
-          <div className="confetti"></div><div className="confetti"></div><div className="confetti"></div><div className="confetti"></div><div className="confetti"></div><div className="confetti"></div><div className="confetti"></div><div className="confetti"></div><div className="confetti"></div><div className="confetti"></div>
+          <div className="confetti"></div><div className="confetti"></div><div className="confetti"></div><div className="confetti"></div><div className="confetti"></div>
+          <div className="confetti"></div><div className="confetti"></div><div className="confetti"></div><div className="confetti"></div><div className="confetti"></div>
         </div>
 
         <div className="text-center card max-w-md z-10 relative">
