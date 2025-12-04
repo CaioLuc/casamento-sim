@@ -313,3 +313,11 @@ body {
   background: #cbd5e1;
   border-radius: 4px;
 }
+
+.category-filters {
+  display: flex;
+  gap: 1rem; 
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
+}

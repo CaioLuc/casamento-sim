@@ -13,9 +13,21 @@ import {
 } from 'firebase/firestore';
 import './App.css';
 
+// --- CONFIGURAÇÃO DE CORES POR CATEGORIA ---
 const CATEGORIES = ['Todos', 'Cozinha', 'Quarto', 'Sala', 'Banheiro', 'Eletro', 'Decoração', 'Outros'];
 
-// --- FUNÇÕES MANUAIS DE MÁSCARA (SEM BIBLIOTECAS) ---
+const CATEGORY_STYLES = {
+  'Todos':      { bg: '#f3f4f6', text: '#374151', activeBg: '#374151' }, // Cinza Neutro
+  'Cozinha':    { bg: '#ffedd5', text: '#c2410c', activeBg: '#c2410c' }, // Laranja
+  'Quarto':     { bg: '#f3e8ff', text: '#7e22ce', activeBg: '#7e22ce' }, // Roxo
+  'Sala':       { bg: '#dbeafe', text: '#1d4ed8', activeBg: '#1d4ed8' }, // Azul
+  'Banheiro':   { bg: '#ccfbf1', text: '#0f766e', activeBg: '#0f766e' }, // Verde Água
+  'Eletro':     { bg: '#e2e8f0', text: '#475569', activeBg: '#475569' }, // Slate (Cinza Azulado)
+  'Decoração':  { bg: '#fce7f3', text: '#be185d', activeBg: '#be185d' }, // Rosa
+  'Outros':     { bg: '#dcfce7', text: '#15803d', activeBg: '#15803d' }  // Verde
+};
+
+// --- FUNÇÕES MANUAIS DE MÁSCARA ---
 const maskPhone = (value) => {
   return value
     .replace(/\D/g, '')
@@ -45,17 +57,14 @@ export default function WeddingGiftSite() {
   const [guests, setGuests] = useState([]);
   const [pixContributions, setPixContributions] = useState([]);
   
-  // Filtros e Seleções
   const [categoryFilter, setCategoryFilter] = useState('Todos');
   const [pixAmount, setPixAmount] = useState('');
   const [selectedGift, setSelectedGift] = useState(null);
   const [selectedPix, setSelectedPix] = useState(null);
   
-  // Mensagens
   const [guestMessage, setGuestMessage] = useState('');
   const [messageSent, setMessageSent] = useState(false);
   
-  // Admin
   const [adminPassword, setAdminPassword] = useState('');
   const [adminError, setAdminError] = useState('');
   const [editingId, setEditingId] = useState(null);
@@ -173,7 +182,7 @@ export default function WeddingGiftSite() {
 
   const handleFinalConfirmation = async () => {
     if (!selectedGift && !selectedPix) {
-      alert('⚠️ Por favor selecione um presente ou uma contribuição PIX.');
+      alert('Por favor selecione um presente ou uma contribuição PIX.');
       return;
     }
 
@@ -224,7 +233,7 @@ export default function WeddingGiftSite() {
       
     } catch (error) {
       console.error('Erro:', error);
-      alert('❌ Erro ao confirmar: ' + error.message);
+      alert('Erro ao confirmar: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -294,7 +303,7 @@ export default function WeddingGiftSite() {
 
       if (editingId) {
         await updateDoc(doc(db, 'gifts', editingId), giftData);
-        alert('✅ Item atualizado!');
+        alert('Item atualizado!');
       } else {
         await addDoc(collection(db, 'gifts'), { 
           ...giftData, 
@@ -303,7 +312,7 @@ export default function WeddingGiftSite() {
           reservedBy: null, 
           createdAt: serverTimestamp() 
         });
-        alert('✅ Item adicionado!');
+        alert('Item adicionado!');
       }
       await loadGifts();
       handleCancelEdit();
@@ -414,7 +423,7 @@ export default function WeddingGiftSite() {
                 {selectedGift && (
                   <div className="mb-4 pb-4 border-b border-gray-100 flex justify-between items-start">
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">🎁 Presente:</p>
+                      <p className="text-sm text-gray-600 mb-1">Presente:</p>
                       <p className="font-bold text-lg">{selectedGift.name}</p>
                       {selectedGift.link && <a href={selectedGift.link} target="_blank" rel="noopener noreferrer" className="link"><ExternalLink size={16} style={{marginRight: '0.25rem'}} /> Ver sugestão</a>}
                     </div>
@@ -424,7 +433,7 @@ export default function WeddingGiftSite() {
                 {selectedPix && (
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">💰 Contribuição PIX:</p>
+                      <p className="text-sm text-gray-600 mb-1">Contribuição PIX:</p>
                       <p className="font-bold text-2xl text-green-600">R$ {selectedPix.amount.toFixed(2)}</p>
                     </div>
                     <button onClick={handleRemovePixSelection} className="btn-text btn-text-red" style={{fontSize: '0.8rem'}}>Remover</button>
@@ -450,7 +459,6 @@ export default function WeddingGiftSite() {
 
               {!selectedPix ? (
                 <>
-                  {/* INPUT COM MÁSCARA DE MOEDA MANUAL */}
                   <input
                     type="text"
                     value={pixAmount}
@@ -459,7 +467,6 @@ export default function WeddingGiftSite() {
                     className="input mb-4"
                     inputMode="numeric"
                   />
-                  
                   <div style={{display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', justifyContent: 'center', flexWrap: 'wrap'}}>
                     {[50, 100, 150, 200].map(val => (
                       <button key={val} onClick={() => handlePixPreset(val)} className="btn" style={{width: 'auto', padding: '0.5rem 1rem', backgroundColor: '#f3f4f6', color: '#4b5563', border: '1px solid #d1d5db', fontSize: '0.9rem'}}>
@@ -485,16 +492,36 @@ export default function WeddingGiftSite() {
               Opção 2: Lista de Presentes
             </h3>
             
-            <div className="category-filters">
-              {CATEGORIES.map(cat => (
-                <button key={cat} onClick={() => setCategoryFilter(cat)} className={`badge ${categoryFilter === cat ? 'badge-blue' : 'badge-gray'}`} style={{cursor: 'pointer', border: 'none', padding: '0.5rem 1rem', fontSize: '0.85rem', whiteSpace: 'nowrap'}}>
-                  {cat}
-                </button>
-              ))}
+            {/* FILTROS DE CATEGORIA COLORIDOS E COM ESPAÇAMENTO */}
+            <div className="category-filters" style={{display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '1rem', marginBottom: '1.5rem'}}>
+              {CATEGORIES.map(cat => {
+                const style = CATEGORY_STYLES[cat] || CATEGORY_STYLES['Outros'];
+                const isSelected = categoryFilter === cat;
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setCategoryFilter(cat)}
+                    className="badge"
+                    style={{
+                      cursor: 'pointer',
+                      border: isSelected ? 'none' : `1px solid ${style.bg}`,
+                      padding: '0.6rem 1.2rem',
+                      fontSize: '0.9rem',
+                      whiteSpace: 'nowrap',
+                      backgroundColor: isSelected ? style.activeBg : style.bg,
+                      color: isSelected ? '#ffffff' : style.text,
+                      boxShadow: isSelected ? '0 4px 6px -1px rgba(0,0,0,0.1)' : 'none',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
             </div>
 
             <p className="text-gray-600 mb-6 text-sm bg-gray-50 p-3 rounded border border-gray-200">
-              ℹ️ <strong>Nota:</strong> Os links são sugestões de modelo. Compre onde preferir!
+            <strong>Nota:</strong> Os links são sugestões de modelo. Compre onde preferir!
             </p>
             
             {filteredGifts.length === 0 ? (
@@ -505,20 +532,35 @@ export default function WeddingGiftSite() {
                   const count = gift.purchaseCount || 0;
                   const max = gift.maxQuantity || 1;
                   const isSoldOut = gift.reserved;
+                  // Pega a cor correta para a etiqueta dentro do card
+                  const catStyle = CATEGORY_STYLES[gift.category] || CATEGORY_STYLES['Outros'];
 
                   return (
                     <div key={gift.id} className={`gift-card ${isSoldOut ? 'reserved' : ''} ${selectedGift?.id === gift.id ? 'selected-card' : ''}`} style={selectedGift?.id === gift.id ? {borderColor: '#10b981', borderWidth: '2px'} : {}}>
                       {gift.image && <img src={gift.image} alt={gift.name} />}
                       
-                      {/* AQUI ESTÁ A CORREÇÃO DA ETIQUETA */}
-                      <span className="badge badge-gray mb-2" style={{fontSize: '0.65rem'}}>
+                      {/* ETIQUETA COLORIDA DENTRO DO CARD */}
+                      <span 
+                        className="badge mb-2" 
+                        style={{
+                          backgroundColor: catStyle.bg, 
+                          color: catStyle.text,
+                          fontSize: '0.7rem'
+                        }}
+                      >
                         {gift.category || 'Outros'}
                       </span>
 
                       <h4 className="font-bold text-md mb-1 leading-tight">{gift.name}</h4>
                       <p className="text-xs text-gray-600 mb-3">{gift.description}</p>
-                      {gift.allowMultiple && <p className="text-xs text-blue-600 font-semibold mb-2 bg-blue-50 p-1 rounded">{count} de {max} comprados</p>}
-                      <div className="mt-auto space-y-2">
+                      
+                      {gift.allowMultiple && (
+                         <div className="text-xs font-semibold mb-2" style={{color: '#2563eb', backgroundColor: '#eff6ff', padding: '2px 6px', borderRadius: '4px', display: 'inline-block'}}>
+                           {count} de {max} comprados
+                         </div>
+                      )}
+
+                      <div className="mt-auto space-y-2 w-full">
                         {isSoldOut ? (
                           <div className="badge badge-gray w-full"><Lock size={14} /> Esgotado</div>
                         ) : selectedGift?.id === gift.id ? (
@@ -591,7 +633,7 @@ export default function WeddingGiftSite() {
               </div>
             </div>
             
-            <h3 className="text-lg font-bold mb-4">{editingId ? `✏️ Editando` : '➕ Adicionar Novo Item'}</h3>
+            <h3 className="text-lg font-bold mb-4">{editingId ? `Editando` : 'Adicionar Novo Item'}</h3>
             
             <div className="grid grid-cols-2 gap-4 mb-8">
               <input type="text" placeholder="Nome *" value={newGift.name} onChange={(e) => setNewGift({...newGift, name: e.target.value})} className="input" />
@@ -629,7 +671,7 @@ export default function WeddingGiftSite() {
               </div>
             </div>
 
-            <h3 className="text-lg font-bold mb-4">📦 Lista de Itens ({gifts.length})</h3>
+            <h3 className="text-lg font-bold mb-4">Lista de Itens ({gifts.length})</h3>
             <div className="grid grid-cols-3 gap-4">
               {gifts.map(gift => (
                 <div key={gift.id} className="relative p-4 border rounded bg-white" style={editingId === gift.id ? {borderColor: '#ec4899', borderWidth: '2px'} : {}}>
@@ -638,7 +680,7 @@ export default function WeddingGiftSite() {
                   <h4 className="font-bold text-sm">{gift.name}</h4>
                   <p className="text-xs text-gray-600 mb-2">{gift.description}</p>
                   <div className="text-xs bg-gray-100 p-1 rounded mb-2">Status: <strong>{gift.purchaseCount || 0} / {gift.maxQuantity || 1}</strong></div>
-                  {gift.reserved && <p className="text-xs text-green-600 font-bold">✅ ESGOTADO</p>}
+                  {gift.reserved && <p className="text-xs text-green-600 font-bold">ESGOTADO</p>}
                   {!gift.allowMultiple && gift.reservedBy && <p className="text-xs text-gray-500">Por: {gift.reservedBy}</p>}
                   <div className="absolute top-2 right-2 flex gap-1">
                     <button onClick={() => handleStartEdit(gift)} disabled={loading} className="icon-btn" style={{backgroundColor: '#3b82f6', width:'1.5rem', height:'1.5rem'}} title="Editar"><Edit size={12} /></button>
@@ -656,7 +698,6 @@ export default function WeddingGiftSite() {
   if (currentPage === 'thanks') {
     return (
       <div className="min-h-screen bg-gradient flex items-center justify-center px-4 overflow-hidden">
-        {/* CONFETES CSS PURO */}
         <div className="confetti-container">
           <div className="confetti"></div><div className="confetti"></div><div className="confetti"></div><div className="confetti"></div><div className="confetti"></div>
           <div className="confetti"></div><div className="confetti"></div><div className="confetti"></div><div className="confetti"></div><div className="confetti"></div>
@@ -669,7 +710,7 @@ export default function WeddingGiftSite() {
 
           {!messageSent ? (
             <div className="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-200">
-              <p className="text-sm text-gray-700 mb-2 font-semibold">Deixe um recadinho para nós! 💌</p>
+              <p className="text-sm text-gray-700 mb-2 font-semibold">Deixe um recadinho para nós! </p>
               <textarea 
                 className="input mb-2" 
                 rows="3" 
@@ -683,7 +724,7 @@ export default function WeddingGiftSite() {
             </div>
           ) : (
             <div className="bg-green-50 p-4 rounded-lg mb-6 text-green-700 border border-green-100">
-              <p className="font-bold">Mensagem enviada! ❤️</p>
+              <p className="font-bold">Mensagem enviada! </p>
               <p className="text-sm">Adoramos ler seus recadinhos.</p>
             </div>
           )}
