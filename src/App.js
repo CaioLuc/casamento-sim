@@ -151,23 +151,15 @@ export default function WeddingGiftSite() {
       return;
     }
     
-    setLoading(true);
-    try {
-      const guest = {
-        name: guestName,
-        phone: guestPhone, 
-        timestamp: serverTimestamp()
-      };
-      const docRef = await addDoc(collection(db, 'guests'), guest);
-      setCurrentGuest({ id: docRef.id, ...guest });
-      setCurrentPage('intro'); 
-      await loadGuests();
-    } catch (error) {
-      console.error('Erro:', error);
-      showToast('Erro ao salvar. Tente novamente.', 'error');
-    } finally {
-      setLoading(false);
-    }
+    // --- ALTERAÇÃO PRINCIPAL ---
+    // NÃO SALVA NO BANCO AINDA. Apenas guarda na memória (Estado)
+    setCurrentGuest({ 
+      name: guestName, 
+      phone: guestPhone 
+      // id: null (ainda não tem ID pois não foi pro banco)
+    });
+    
+    setCurrentPage('intro'); 
   };
 
   const handleSelectGift = async (gift) => {
@@ -215,8 +207,24 @@ export default function WeddingGiftSite() {
 
     setLoading(true);
     try {
-      const updateData = { confirmedAt: serverTimestamp() };
+      // --- CRIAÇÃO DO CONVIDADO (AGORA SIM!) ---
+      // 1. Cria o documento do convidado no banco
+      const guestData = {
+        name: currentGuest.name,
+        phone: currentGuest.phone,
+        timestamp: serverTimestamp(),
+        confirmedAt: serverTimestamp()
+      };
+      
+      const guestDocRef = await addDoc(collection(db, 'guests'), guestData);
+      const newGuestId = guestDocRef.id;
+      
+      // Atualiza o estado local com o ID gerado
+      setCurrentGuest(prev => ({ ...prev, id: newGuestId }));
 
+      const updateData = {}; // Dados extras para atualizar no convidado
+
+      // 2. Processa Presente
       if (selectedGift) {
         const giftRef = doc(db, 'gifts', selectedGift.id);
         const currentCount = selectedGift.purchaseCount || 0;
@@ -228,27 +236,28 @@ export default function WeddingGiftSite() {
           purchaseCount: newCount,
           reserved: isFullyReserved,
           reservedBy: currentGuest.name,
-          reservedById: currentGuest.id,
+          reservedById: newGuestId, // Usa o ID recém-criado
           reservedAt: serverTimestamp()
         });
         updateData.giftId = selectedGift.id;
         updateData.giftName = selectedGift.name;
       }
       
+      // 3. Processa Pix
       if (selectedPix) {
         const pixDoc = await addDoc(collection(db, 'pixContributions'), {
           guestName: currentGuest.name,
-          guestId: currentGuest.id,
+          guestId: newGuestId, // Usa o ID recém-criado
           guestPhone: currentGuest.phone,
           amount: selectedPix.amount,
           timestamp: serverTimestamp()
         });
         updateData.pixAmount = selectedPix.amount;
-        updateData.pixContributionId = pixDoc.id; // Salvamos o ID do Pix no convidado
+        updateData.pixContributionId = pixDoc.id;
       }
 
-      const guestRef = doc(db, 'guests', currentGuest.id);
-      await updateDoc(guestRef, updateData);
+      // 4. Atualiza o convidado com os dados da escolha
+      await updateDoc(guestDocRef, updateData);
       
       await loadGifts();
       await loadGuests();
@@ -257,7 +266,7 @@ export default function WeddingGiftSite() {
       setCurrentPage('thanks');
       
     } catch (error) {
-      console.error('Erro:', error);
+      console.error('Erro ao confirmar:', error);
       showToast('Erro ao confirmar: ' + error.message, 'error');
     } finally {
       setLoading(false);
@@ -266,6 +275,11 @@ export default function WeddingGiftSite() {
 
   const handleSendMessage = async () => {
     if (!guestMessage.trim()) return;
+    if (!currentGuest?.id) {
+       showToast('Erro: Convidado não identificado.', 'error');
+       return;
+    }
+    
     setLoading(true);
     try {
       const guestRef = doc(db, 'guests', currentGuest.id);
@@ -277,13 +291,14 @@ export default function WeddingGiftSite() {
       await loadGuests();
       showToast('Mensagem enviada com sucesso!', 'success');
     } catch (error) {
+      console.error('Erro ao enviar mensagem:', error);
       showToast('Erro ao enviar mensagem.', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  // --- FUNÇÕES ADMIN AVANÇADAS ---
+  // --- FUNÇÕES ADMIN ---
 
   const handleAdminLogin = async () => {
     setLoading(true);
@@ -302,7 +317,6 @@ export default function WeddingGiftSite() {
     } finally { setLoading(false); }
   };
 
-  // Excluir Mensagem (apenas limpa o campo)
   const handleDeleteMessage = async (guestId) => {
     if (!window.confirm('Apagar o recado deste convidado?')) return;
     setLoading(true);
@@ -317,13 +331,11 @@ export default function WeddingGiftSite() {
     } finally { setLoading(false); }
   };
 
-  // SUPER DELEÇÃO: Apaga convidado + Libera Presente + Apaga registro do PIX
   const handleDeleteGuest = async (guest) => {
     if (!window.confirm(`ATENÇÃO: Você vai excluir ${guest.name}.\n\nIsso vai:\n1. Liberar o presente (se houver)\n2. Apagar o PIX do sistema (se houver)\n3. Remover o convidado da lista.\n\nConfirmar?`)) return;
     
     setLoading(true);
     try {
-      // 1. Liberar Presente
       if (guest.giftId) {
         const giftDoc = await getDoc(doc(db, 'gifts', guest.giftId));
         if (giftDoc.exists()) {
@@ -338,20 +350,16 @@ export default function WeddingGiftSite() {
         }
       }
 
-      // 2. Apagar Registro do PIX (se existir vínculo)
       if (guest.pixContributionId) {
         try {
            await deleteDoc(doc(db, 'pixContributions', guest.pixContributionId));
-           console.log("Pix apagado com sucesso.");
         } catch (err) {
-           console.error("Erro ao apagar Pix vinculado (pode já ter sido apagado):", err);
+           console.error("Pix já não existia:", err);
         }
       }
 
-      // 3. Deleta o convidado
       await deleteDoc(doc(db, 'guests', guest.id));
       
-      // Recarrega tudo
       await loadGuests();
       await loadGifts();
       await loadPixContributions();
@@ -417,20 +425,6 @@ export default function WeddingGiftSite() {
       showToast('Item removido.', 'success');
     } catch (error) { showToast('Erro ao remover.', 'error'); } finally { setLoading(false); }
   };
-
-  // --- COMPONENTE TOAST ---
-  const ToastNotification = () => (
-    toast ? (
-      <div className="toast-container">
-        <div className={`toast toast-${toast.type}`}>
-          <span>{toast.message}</span>
-          <button onClick={() => setToast(null)} style={{background:'none', border:'none', color:'white', cursor:'pointer'}}>
-            <X size={18} />
-          </button>
-        </div>
-      </div>
-    ) : null
-  );
 
   // --- RENDERIZAÇÃO ---
 
@@ -638,7 +632,6 @@ export default function WeddingGiftSite() {
             )}
           </div>
         </div>
-        {/* Botão Voltar ao Topo */}
         <button className={`scroll-top-btn ${showScrollTop ? 'visible' : ''}`} onClick={scrollToTop}>
           <ChevronUp size={24} />
         </button>
@@ -650,7 +643,6 @@ export default function WeddingGiftSite() {
     return (
       <div className="min-h-screen bg-gradient-gray flex items-center justify-center px-4">
         <ToastNotification />
-        {/* CADEADO CENTRALIZADO COM FLEX */}
         <div className="card flex flex-col items-center" style={{maxWidth: '24rem'}}>
           <div className="flex justify-center w-full mb-6">
              <Lock className="text-gray-700" size={48} />
@@ -690,7 +682,7 @@ export default function WeddingGiftSite() {
               </div>
             </div>
 
-            {/* --- GERENCIAMENTO DE CONVIDADOS (TABELA UNIFICADA) --- */}
+            {/* --- GERENCIAMENTO DE CONVIDADOS --- */}
             {showGuestList && (
               <div className="mb-8 p-4 bg-blue-50 rounded-lg border border-blue-100">
                 <h3 className="text-lg font-bold text-blue-800 mb-4">Gerenciamento de Convidados</h3>
@@ -746,7 +738,7 @@ export default function WeddingGiftSite() {
             {/* MURAL DE RECADOS */}
             <div className="mb-8 p-4 bg-pink-50 rounded-lg border border-pink-100">
               <h3 className="text-lg font-bold text-pink-700 mb-4 flex items-center">
-                <MessageCircle size={20} className="mr-2" /> Recados ({guests.filter(g => g.message).length})
+                <MessageCircle size={20} className="mr-2" /> Mural de Recados ({guests.filter(g => g.message).length})
               </h3>
               <div className="space-y-3 max-h-60 overflow-y-auto">
                 {guests.filter(g => g.message).length === 0 ? <p className="text-sm text-gray-500 italic">Nenhuma mensagem.</p> : 
@@ -811,7 +803,6 @@ export default function WeddingGiftSite() {
                   <div key={gift.id} className="relative p-4 border rounded bg-white" style={editingId === gift.id ? {borderColor: '#ec4899', borderWidth: '2px'} : {}}>
                     {gift.image && <img src={gift.image} alt={gift.name} style={{width:'100%', height:'5rem', objectFit:'contain'}} />}
                     
-                    {/* ETIQUETA COLORIDA APLICADA CORRETAMENTE AQUI */}
                     <span className="badge mb-2" style={{backgroundColor: catStyle.bg, color: catStyle.text, fontSize: '0.7rem', display:'inline-block'}}>
                       {gift.category || 'Outros'}
                     </span>
