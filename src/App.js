@@ -151,12 +151,10 @@ export default function WeddingGiftSite() {
       return;
     }
     
-    // --- ALTERAÇÃO PRINCIPAL ---
-    // NÃO SALVA NO BANCO AINDA. Apenas guarda na memória (Estado)
+    // MODO RASCUNHO: Não salva no banco ainda
     setCurrentGuest({ 
       name: guestName, 
       phone: guestPhone 
-      // id: null (ainda não tem ID pois não foi pro banco)
     });
     
     setCurrentPage('intro'); 
@@ -207,8 +205,7 @@ export default function WeddingGiftSite() {
 
     setLoading(true);
     try {
-      // --- CRIAÇÃO DO CONVIDADO (AGORA SIM!) ---
-      // 1. Cria o documento do convidado no banco
+      // 1. Cria o convidado no banco AGORA
       const guestData = {
         name: currentGuest.name,
         phone: currentGuest.phone,
@@ -218,11 +215,9 @@ export default function WeddingGiftSite() {
       
       const guestDocRef = await addDoc(collection(db, 'guests'), guestData);
       const newGuestId = guestDocRef.id;
-      
-      // Atualiza o estado local com o ID gerado
       setCurrentGuest(prev => ({ ...prev, id: newGuestId }));
 
-      const updateData = {}; // Dados extras para atualizar no convidado
+      const updateData = {}; 
 
       // 2. Processa Presente
       if (selectedGift) {
@@ -236,7 +231,7 @@ export default function WeddingGiftSite() {
           purchaseCount: newCount,
           reserved: isFullyReserved,
           reservedBy: currentGuest.name,
-          reservedById: newGuestId, // Usa o ID recém-criado
+          reservedById: newGuestId,
           reservedAt: serverTimestamp()
         });
         updateData.giftId = selectedGift.id;
@@ -247,7 +242,7 @@ export default function WeddingGiftSite() {
       if (selectedPix) {
         const pixDoc = await addDoc(collection(db, 'pixContributions'), {
           guestName: currentGuest.name,
-          guestId: newGuestId, // Usa o ID recém-criado
+          guestId: newGuestId,
           guestPhone: currentGuest.phone,
           amount: selectedPix.amount,
           timestamp: serverTimestamp()
@@ -256,7 +251,7 @@ export default function WeddingGiftSite() {
         updateData.pixContributionId = pixDoc.id;
       }
 
-      // 4. Atualiza o convidado com os dados da escolha
+      // 4. Atualiza o convidado com o que ele escolheu
       await updateDoc(guestDocRef, updateData);
       
       await loadGifts();
@@ -425,6 +420,20 @@ export default function WeddingGiftSite() {
       showToast('Item removido.', 'success');
     } catch (error) { showToast('Erro ao remover.', 'error'); } finally { setLoading(false); }
   };
+
+  // --- COMPONENTE TOAST (ESTAVA FALTANDO ISSO AQUI ANTES!) ---
+  const ToastNotification = () => (
+    toast ? (
+      <div className="toast-container">
+        <div className={`toast toast-${toast.type}`}>
+          <span>{toast.message}</span>
+          <button onClick={() => setToast(null)} style={{background:'none', border:'none', color:'white', cursor:'pointer'}}>
+            <X size={18} />
+          </button>
+        </div>
+      </div>
+    ) : null
+  );
 
   // --- RENDERIZAÇÃO ---
 
@@ -632,6 +641,7 @@ export default function WeddingGiftSite() {
             )}
           </div>
         </div>
+        {/* Botão Voltar ao Topo */}
         <button className={`scroll-top-btn ${showScrollTop ? 'visible' : ''}`} onClick={scrollToTop}>
           <ChevronUp size={24} />
         </button>
@@ -643,6 +653,7 @@ export default function WeddingGiftSite() {
     return (
       <div className="min-h-screen bg-gradient-gray flex items-center justify-center px-4">
         <ToastNotification />
+        {/* CADEADO CENTRALIZADO COM FLEX */}
         <div className="card flex flex-col items-center" style={{maxWidth: '24rem'}}>
           <div className="flex justify-center w-full mb-6">
              <Lock className="text-gray-700" size={48} />
@@ -682,7 +693,7 @@ export default function WeddingGiftSite() {
               </div>
             </div>
 
-            {/* --- GERENCIAMENTO DE CONVIDADOS --- */}
+            {/* --- GERENCIAMENTO DE CONVIDADOS (TABELA UNIFICADA) --- */}
             {showGuestList && (
               <div className="mb-8 p-4 bg-blue-50 rounded-lg border border-blue-100">
                 <h3 className="text-lg font-bold text-blue-800 mb-4">Gerenciamento de Convidados</h3>
@@ -803,6 +814,7 @@ export default function WeddingGiftSite() {
                   <div key={gift.id} className="relative p-4 border rounded bg-white" style={editingId === gift.id ? {borderColor: '#ec4899', borderWidth: '2px'} : {}}>
                     {gift.image && <img src={gift.image} alt={gift.name} style={{width:'100%', height:'5rem', objectFit:'contain'}} />}
                     
+                    {/* ETIQUETA COLORIDA APLICADA CORRETAMENTE AQUI */}
                     <span className="badge mb-2" style={{backgroundColor: catStyle.bg, color: catStyle.text, fontSize: '0.7rem', display:'inline-block'}}>
                       {gift.category || 'Outros'}
                     </span>
