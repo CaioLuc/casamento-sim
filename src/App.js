@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Gift, DollarSign, Lock, Trash2, Plus, ExternalLink, AlertCircle, CheckCircle, Send, Info, Edit, X, MessageCircle, ChevronUp, UserX, FileText } from 'lucide-react';
+import { Heart, Gift, DollarSign, Lock, Trash2, Plus, ExternalLink, AlertCircle, CheckCircle, Send, Info, Edit, X, MessageCircle, ChevronUp, UserX, FileText, Package } from 'lucide-react';
 import { db } from './firebase';
 import { 
   collection, 
@@ -62,9 +62,16 @@ export default function WeddingGiftSite() {
   const [pixContributions, setPixContributions] = useState([]);
   
   const [categoryFilter, setCategoryFilter] = useState('Todos');
+  
+  // ESTADOS DE SELEÇÃO
   const [pixAmount, setPixAmount] = useState('');
-  const [selectedGift, setSelectedGift] = useState(null);
   const [selectedPix, setSelectedPix] = useState(null);
+  
+  const [selectedGift, setSelectedGift] = useState(null);
+  
+  // NOVO: Estado para "Outro Presente"
+  const [customGiftNameInput, setCustomGiftNameInput] = useState(''); // O que está sendo digitado
+  const [selectedCustomGift, setSelectedCustomGift] = useState(null); // O que foi confirmado
   
   const [guestMessage, setGuestMessage] = useState('');
   const [messageSent, setMessageSent] = useState(false);
@@ -160,6 +167,8 @@ export default function WeddingGiftSite() {
     setCurrentPage('intro'); 
   };
 
+  // --- SELEÇÃO DE ITENS ---
+
   const handleSelectGift = async (gift) => {
     if (gift.reserved) {
       showToast('Este presente já foi totalmente comprado.', 'error');
@@ -181,7 +190,6 @@ export default function WeddingGiftSite() {
       showToast('Insira um valor válido para o PIX', 'error');
       return;
     }
-
     setSelectedPix({ amount: numericValue });
     setPixAmount(''); 
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -192,12 +200,27 @@ export default function WeddingGiftSite() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // NOVO: Adicionar "Outro Presente"
+  const handleAddCustomGift = () => {
+    if (!customGiftNameInput.trim()) {
+      showToast('Por favor, digite o nome do presente.', 'error');
+      return;
+    }
+    setSelectedCustomGift(customGiftNameInput);
+    setCustomGiftNameInput('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleRemoveGiftSelection = () => setSelectedGift(null);
   const handleRemovePixSelection = () => setSelectedPix(null);
+  const handleRemoveCustomGift = () => setSelectedCustomGift(null);
+
+  // --- CONFIRMAÇÃO FINAL ---
 
   const handleFinalConfirmation = async () => {
-    if (!selectedGift && !selectedPix) {
-      showToast('Selecione um presente ou PIX.', 'error');
+    // Agora verifica se tem Algum presente (da lista ou customizado) ou Pix
+    if (!selectedGift && !selectedPix && !selectedCustomGift) {
+      showToast('Selecione um presente, um valor Pix ou digite seu presente.', 'error');
       return;
     }
 
@@ -219,7 +242,7 @@ export default function WeddingGiftSite() {
 
       const updateData = {}; 
 
-      // 2. Processa Presente
+      // 2. Processa Presente da Lista (se houver)
       if (selectedGift) {
         const giftRef = doc(db, 'gifts', selectedGift.id);
         const currentCount = selectedGift.purchaseCount || 0;
@@ -237,8 +260,13 @@ export default function WeddingGiftSite() {
         updateData.giftId = selectedGift.id;
         updateData.giftName = selectedGift.name;
       }
+
+      // 3. Processa "Outro Presente" (se houver)
+      if (selectedCustomGift) {
+        updateData.customGift = selectedCustomGift; // Salva o nome digitado
+      }
       
-      // 3. Processa Pix
+      // 4. Processa Pix (se houver)
       if (selectedPix) {
         const pixDoc = await addDoc(collection(db, 'pixContributions'), {
           guestName: currentGuest.name,
@@ -251,7 +279,7 @@ export default function WeddingGiftSite() {
         updateData.pixContributionId = pixDoc.id;
       }
 
-      // 4. Atualiza o convidado com o que ele escolheu
+      // 5. Atualiza o convidado com o que ele escolheu
       await updateDoc(guestDocRef, updateData);
       
       await loadGifts();
@@ -421,7 +449,7 @@ export default function WeddingGiftSite() {
     } catch (error) { showToast('Erro ao remover.', 'error'); } finally { setLoading(false); }
   };
 
-  // --- COMPONENTE TOAST (ESTAVA FALTANDO ISSO AQUI ANTES!) ---
+  // --- COMPONENTE TOAST ---
   const ToastNotification = () => (
     toast ? (
       <div className="toast-container">
@@ -486,7 +514,8 @@ export default function WeddingGiftSite() {
             <p>Para nos ajudar a montar nosso cantinho, você pode escolher:</p>
             <ol className="list-decimal pl-6 space-y-2">
               <li>Um <strong>valor via PIX</strong> (qualquer valor ajuda muito!).</li>
-              <li>E/ou um <strong>item da nossa lista</strong> de sugestões.</li>
+              <li>Um <strong>item da nossa lista</strong> de sugestões.</li>
+              <li>Ou um <strong>presente diferente</strong> que você queira dar.</li>
             </ol>
             <div className="bg-blue-50 p-4 rounded-lg mt-4 border border-blue-100">
               <p className="text-sm text-blue-800"><strong>Nota:</strong> Você pode selecionar as duas opções se desejar!</p>
@@ -501,7 +530,7 @@ export default function WeddingGiftSite() {
   }
 
   if (currentPage === 'gifts' && currentGuest) {
-    const hasSelection = selectedGift || selectedPix;
+    const hasSelection = selectedGift || selectedPix || selectedCustomGift;
     const filteredGifts = categoryFilter === 'Todos' ? gifts : gifts.filter(g => g.category === categoryFilter);
     
     return (
@@ -523,11 +552,20 @@ export default function WeddingGiftSite() {
                 {selectedGift && (
                   <div className="mb-4 pb-4 border-b border-gray-100 flex justify-between items-start">
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">🎁 Presente:</p>
+                      <p className="text-sm text-gray-600 mb-1">🎁 Presente da Lista:</p>
                       <p className="font-bold text-lg">{selectedGift.name}</p>
                       {selectedGift.link && <a href={selectedGift.link} target="_blank" rel="noopener noreferrer" className="link"><ExternalLink size={16} style={{marginRight: '0.25rem'}} /> Ver sugestão</a>}
                     </div>
                     <button onClick={handleRemoveGiftSelection} className="btn-text btn-text-red" style={{fontSize: '0.8rem', width:'auto'}}>Remover</button>
+                  </div>
+                )}
+                {selectedCustomGift && (
+                  <div className="mb-4 pb-4 border-b border-gray-100 flex justify-between items-start">
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">🎁 Outro Presente:</p>
+                      <p className="font-bold text-lg">{selectedCustomGift}</p>
+                    </div>
+                    <button onClick={handleRemoveCustomGift} className="btn-text btn-text-red" style={{fontSize: '0.8rem', width:'auto'}}>Remover</button>
                   </div>
                 )}
                 {selectedPix && (
@@ -541,7 +579,7 @@ export default function WeddingGiftSite() {
                 )}
               </div>
               <button onClick={handleFinalConfirmation} disabled={loading} className="btn btn-success" style={{fontSize: '1.125rem', padding: '1rem'}}>
-                <Send size={24} /> {loading ? 'Enviando...' : 'Confirmar'}
+                <Send size={24} /> {loading ? 'Enviando...' : 'Confirmar e Enviar'}
               </button>
             </div>
           )}
@@ -580,7 +618,7 @@ export default function WeddingGiftSite() {
           <div className="card mb-8">
             <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
               <Gift className="text-pink-500" size={28} style={{marginRight: '0.5rem'}} />
-              Opção 2: Presentes
+              Opção 2: Presentes da Lista
             </h3>
             
             <div className="category-filters">
@@ -640,8 +678,36 @@ export default function WeddingGiftSite() {
               </div>
             )}
           </div>
+
+          {/* NOVA OPÇÃO 3 */}
+          <div className="card mb-8">
+            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+              <Package className="text-purple-600" size={28} style={{marginRight: '0.5rem'}} />
+              Opção 3: Outro Presente
+            </h3>
+            <p className="text-gray-600 mb-4">Quer dar algo que não está na lista? Digite abaixo o nome do presente.</p>
+            
+            {!selectedCustomGift ? (
+              <div className="flex flex-col gap-2">
+                <input 
+                  type="text" 
+                  className="input" 
+                  placeholder="Ex: Jogo de Copos, Toalha de Mesa..." 
+                  value={customGiftNameInput}
+                  onChange={(e) => setCustomGiftNameInput(e.target.value)}
+                />
+                <button onClick={handleAddCustomGift} className="btn btn-secondary">
+                  Adicionar este presente
+                </button>
+              </div>
+            ) : (
+              <div className="text-center p-4 bg-green-50 rounded text-green-800">
+                <CheckCircle className="icon-center mb-2" /> Presente "{selectedCustomGift}" adicionado!
+              </div>
+            )}
+          </div>
+
         </div>
-        {/* Botão Voltar ao Topo */}
         <button className={`scroll-top-btn ${showScrollTop ? 'visible' : ''}`} onClick={scrollToTop}>
           <ChevronUp size={24} />
         </button>
@@ -716,12 +782,15 @@ export default function WeddingGiftSite() {
                           <td className="p-2">
                             <div className="flex flex-col gap-1">
                                {guest.giftName && (
-                                  <span className="text-green-700 text-xs bg-green-100 px-2 py-1 rounded inline-block">🎁 {guest.giftName}</span>
+                                  <span className="text-green-700 text-xs bg-green-100 px-2 py-1 rounded inline-block">🎁 Lista: {guest.giftName}</span>
+                               )}
+                               {guest.customGift && (
+                                  <span className="text-blue-700 text-xs bg-blue-100 px-2 py-1 rounded inline-block">🎁 Outro: {guest.customGift}</span>
                                )}
                                {guest.pixAmount && (
                                   <span className="text-purple-700 text-xs bg-purple-100 px-2 py-1 rounded inline-block">💰 PIX: {formatCurrency(guest.pixAmount)}</span>
                                )}
-                               {!guest.giftName && !guest.pixAmount && (
+                               {!guest.giftName && !guest.pixAmount && !guest.customGift && (
                                   <span className="text-gray-400 text-xs">Apenas confirmou</span>
                                )}
                             </div>
